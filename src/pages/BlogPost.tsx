@@ -6,6 +6,7 @@ import { zhCN } from 'date-fns/locale';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CommentSection from "@/components/CommentSection";
+import LikeButton from "@/components/LikeButton";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
@@ -141,6 +142,11 @@ const BlogPost = () => {
                   </p>
                 );
               })}
+            </div>
+            
+            {/* Like Button */}
+            <div className="flex items-center justify-center mt-10 mb-8">
+              <LikeButton postId={post.id} />
             </div>
             
             {/* Comments */}

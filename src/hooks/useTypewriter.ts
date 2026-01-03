@@ -6,32 +6,32 @@ interface UseTypewriterProps {
   delay?: number;
 }
 
-export const useTypewriter = ({ text, speed = 50, delay = 0 }: UseTypewriterProps) => {
+export const useTypewriter = ({ text, speed = 100, delay = 0 }: UseTypewriterProps) => {
   const [displayText, setDisplayText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     setDisplayText('');
     setIsComplete(false);
+    setCurrentIndex(0);
+  }, [text]);
+
+  useEffect(() => {
+    if (currentIndex >= text.length) {
+      setIsComplete(true);
+      return;
+    }
+
+    const delayTimeout = currentIndex === 0 ? delay : 0;
     
     const timeout = setTimeout(() => {
-      let currentIndex = 0;
-      
-      const interval = setInterval(() => {
-        if (currentIndex < text.length) {
-          setDisplayText(text.slice(0, currentIndex + 1));
-          currentIndex++;
-        } else {
-          setIsComplete(true);
-          clearInterval(interval);
-        }
-      }, speed);
-
-      return () => clearInterval(interval);
-    }, delay);
+      setDisplayText(prev => prev + text[currentIndex]);
+      setCurrentIndex(prev => prev + 1);
+    }, delayTimeout + speed);
 
     return () => clearTimeout(timeout);
-  }, [text, speed, delay]);
+  }, [currentIndex, text, speed, delay]);
 
   return { displayText, isComplete };
 };
