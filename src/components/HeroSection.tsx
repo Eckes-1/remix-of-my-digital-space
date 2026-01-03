@@ -18,14 +18,14 @@ const HeroSection = () => {
         </div>
         
         <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6">
-          <TypewriterText text="墨迹随笔" speed={100} />
+          <TypewriterText text="墨迹随笔" speed={200} />
         </h1>
         
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed animate-slide-up" style={{ animationDelay: "1.5s", animationFillMode: "backwards" }}>
+        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
           <TypewriterText 
             text="在这里，我分享关于技术、生活与思考的点滴。每一篇文章，都是一段旅程的记录。" 
-            speed={30} 
-            delay={600}
+            speed={80} 
+            delay={1000}
           />
         </p>
         

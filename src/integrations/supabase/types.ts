@@ -52,6 +52,35 @@ export type Database = {
           },
         ]
       }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_ip: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_ip: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_ip?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_tags: {
         Row: {
           id: string
@@ -93,6 +122,7 @@ export type Database = {
           created_at: string
           excerpt: string
           id: string
+          like_count: number
           published: boolean
           published_at: string | null
           read_time: string
@@ -108,6 +138,7 @@ export type Database = {
           created_at?: string
           excerpt: string
           id?: string
+          like_count?: number
           published?: boolean
           published_at?: string | null
           read_time?: string
@@ -123,6 +154,7 @@ export type Database = {
           created_at?: string
           excerpt?: string
           id?: string
+          like_count?: number
           published?: boolean
           published_at?: string | null
           read_time?: string
@@ -183,7 +215,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_liked_post: {
+        Args: { p_post_id: string; p_user_ip: string }
+        Returns: boolean
+      }
       increment_view_count: { Args: { post_slug: string }; Returns: undefined }
+      toggle_post_like: {
+        Args: { p_post_id: string; p_user_ip: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
