@@ -1,30 +1,46 @@
 import { Link } from "react-router-dom";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
+import coverProgramming from '@/assets/cover-programming.jpg';
+import coverReading from '@/assets/cover-reading.jpg';
+import coverLife from '@/assets/cover-life.jpg';
+import coverTech from '@/assets/cover-tech.jpg';
 
 interface BlogCardProps {
   id: string;
+  slug: string;
   title: string;
   excerpt: string;
   date: string;
   readTime: string;
   category: string;
-  coverImage?: string;
+  coverImage?: string | null;
 }
 
-const BlogCard = ({ id, title, excerpt, date, readTime, category, coverImage }: BlogCardProps) => {
+const categoryCovers: Record<string, string> = {
+  '编程': coverProgramming,
+  '阅读': coverReading,
+  '生活': coverLife,
+  '技术': coverTech,
+};
+
+const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }: BlogCardProps) => {
+  const cover = coverImage || categoryCovers[category] || coverProgramming;
+  
+  const formattedDate = date ? format(new Date(date), 'yyyy年M月d日', { locale: zhCN }) : '';
+
   return (
-    <Link to={`/blog/${id}`} className="block group">
+    <Link to={`/blog/${slug}`} className="block group">
       <article className="blog-card h-full flex flex-col">
-        {coverImage && (
-          <div className="relative overflow-hidden rounded-lg mb-4 aspect-video">
-            <img
-              src={coverImage}
-              alt={title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-foreground/5 group-hover:bg-transparent transition-colors" />
-          </div>
-        )}
+        <div className="relative overflow-hidden rounded-lg mb-4 aspect-video">
+          <img
+            src={cover}
+            alt={title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-foreground/5 group-hover:bg-transparent transition-colors" />
+        </div>
         
         <div className="flex-1 flex flex-col">
           <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full w-fit mb-3">
@@ -43,7 +59,7 @@ const BlogCard = ({ id, title, excerpt, date, readTime, category, coverImage }: 
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
-                {date}
+                {formattedDate}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
