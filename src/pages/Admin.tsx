@@ -134,6 +134,7 @@ const Admin = () => {
           published,
           published_at: published ? new Date().toISOString() : null,
           cover_image: null,
+          view_count: 0,
         });
         toast.success("文章已创建");
       }

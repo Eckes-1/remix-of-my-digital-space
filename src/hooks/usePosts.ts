@@ -14,6 +14,7 @@ export interface Post {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  view_count: number;
 }
 
 export const usePosts = (published: boolean = true) => {
@@ -68,6 +69,37 @@ export const useSearchPosts = (searchQuery: string) => {
       return data as Post[];
     },
     enabled: searchQuery.trim().length > 0,
+  });
+};
+
+export const usePopularPosts = (limit: number = 5) => {
+  return useQuery({
+    queryKey: ['posts', 'popular', limit],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('published', true)
+        .order('view_count', { ascending: false })
+        .limit(limit);
+      
+      if (error) throw error;
+      return data as Post[];
+    },
+  });
+};
+
+export const useIncrementViewCount = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (slug: string) => {
+      const { error } = await supabase.rpc('increment_view_count', { post_slug: slug });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
   });
 };
 

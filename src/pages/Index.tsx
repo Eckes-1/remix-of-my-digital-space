@@ -6,6 +6,7 @@ import HeroSection from "@/components/HeroSection";
 import BlogCard from "@/components/BlogCard";
 import SearchBar from "@/components/SearchBar";
 import TagCloud from "@/components/TagCloud";
+import PopularPosts from "@/components/PopularPosts";
 import { usePosts, useSearchPosts } from "@/hooks/usePosts";
 
 const Index = () => {
@@ -74,6 +75,7 @@ const Index = () => {
               
               <aside className="lg:col-span-1 space-y-6">
                 <TagCloud />
+                <PopularPosts />
               </aside>
             </div>
           </div>

@@ -99,6 +99,7 @@ export type Database = {
           slug: string
           title: string
           updated_at: string
+          view_count: number
         }
         Insert: {
           category?: string
@@ -113,6 +114,7 @@ export type Database = {
           slug: string
           title: string
           updated_at?: string
+          view_count?: number
         }
         Update: {
           category?: string
@@ -127,6 +129,7 @@ export type Database = {
           slug?: string
           title?: string
           updated_at?: string
+          view_count?: number
         }
         Relationships: []
       }
@@ -180,7 +183,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_view_count: { Args: { post_slug: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
