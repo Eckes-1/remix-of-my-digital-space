@@ -1,11 +1,12 @@
+import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Eye } from "lucide-react";
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CommentSection from "@/components/CommentSection";
-import { usePost } from "@/hooks/usePosts";
+import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
@@ -21,6 +22,13 @@ const categoryCovers: Record<string, string> = {
 const BlogPost = () => {
   const { slug } = useParams();
   const { data: post, isLoading, error } = usePost(slug || '');
+  const incrementView = useIncrementViewCount();
+
+  useEffect(() => {
+    if (slug && post) {
+      incrementView.mutate(slug);
+    }
+  }, [slug, post?.id]);
 
   if (isLoading) {
     return (
@@ -100,6 +108,10 @@ const BlogPost = () => {
                 <span className="flex items-center gap-1.5">
                   <Clock className="w-4 h-4" />
                   {post.read_time}阅读
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Eye className="w-4 h-4" />
+                  {post.view_count} 次阅读
                 </span>
               </div>
             </header>
