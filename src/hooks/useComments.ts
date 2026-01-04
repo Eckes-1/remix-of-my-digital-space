@@ -9,6 +9,9 @@ export interface Comment {
   content: string;
   approved: boolean;
   created_at: string;
+  admin_reply?: string | null;
+  replied_at?: string | null;
+  replied_by?: string | null;
 }
 
 export const useComments = (postId: string) => {

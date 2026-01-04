@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { MessageSquare, User, Mail, Send } from 'lucide-react';
+import { MessageSquare, User, Mail, Send, Reply } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { z } from 'zod';
@@ -113,7 +113,7 @@ const CommentSection = ({ postId }: CommentSectionProps) => {
         </div>
       ) : (
         <div className="space-y-6">
-          {approvedComments.map((comment) => (
+          {approvedComments.map((comment: any) => (
             <div key={comment.id} className="blog-card">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -131,6 +131,23 @@ const CommentSection = ({ postId }: CommentSectionProps) => {
                 </div>
               </div>
               <p className="text-foreground/80 leading-relaxed">{comment.content}</p>
+              
+              {/* Admin reply */}
+              {comment.admin_reply && (
+                <div className="mt-4 p-4 bg-primary/5 border-l-4 border-primary rounded-r-lg">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                    <Reply className="w-4 h-4" />
+                    <span className="font-medium text-primary">博主回复</span>
+                    {comment.replied_at && (
+                      <>
+                        <span>·</span>
+                        <span>{format(new Date(comment.replied_at), 'yyyy年M月d日 HH:mm', { locale: zhCN })}</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-foreground/80 leading-relaxed">{comment.admin_reply}</p>
+                </div>
+              )}
             </div>
           ))}
         </div>
