@@ -138,6 +138,56 @@ export type Database = {
           },
         ]
       }
+      post_versions: {
+        Row: {
+          category: string
+          content: string
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          excerpt: string
+          id: string
+          post_id: string
+          read_time: string
+          title: string
+          version_number: number
+        }
+        Insert: {
+          category: string
+          content: string
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          excerpt: string
+          id?: string
+          post_id: string
+          read_time: string
+          title: string
+          version_number: number
+        }
+        Update: {
+          category?: string
+          content?: string
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string
+          id?: string
+          post_id?: string
+          read_time?: string
+          title?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_versions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           category: string
@@ -151,6 +201,7 @@ export type Database = {
           published: boolean
           published_at: string | null
           read_time: string
+          scheduled_at: string | null
           slug: string
           sort_order: number | null
           title: string
@@ -169,6 +220,7 @@ export type Database = {
           published?: boolean
           published_at?: string | null
           read_time?: string
+          scheduled_at?: string | null
           slug: string
           sort_order?: number | null
           title: string
@@ -187,6 +239,7 @@ export type Database = {
           published?: boolean
           published_at?: string | null
           read_time?: string
+          scheduled_at?: string | null
           slug?: string
           sort_order?: number | null
           title?: string

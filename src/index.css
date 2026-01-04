@@ -2,11 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+/* Import fonts for different themes */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&family=Nunito:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&family=Open+Sans:wght@400;500;600&family=Lato:wght@400;700&family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&family=Cinzel:wght@400;600;700&display=swap');
 
 @layer base {
   :root {
-    /* Warm cream palette */
+    /* Default warm theme palette */
     --background: 40 30% 97%;
     --foreground: 25 25% 15%;
 
@@ -16,7 +17,6 @@
     --popover: 40 30% 97%;
     --popover-foreground: 25 25% 15%;
 
-    /* Terracotta accent */
     --primary: 15 60% 50%;
     --primary-foreground: 40 30% 97%;
 
@@ -37,6 +37,10 @@
     --ring: 15 60% 50%;
 
     --radius: 0.75rem;
+
+    /* Typography variables */
+    --font-heading: 'Noto Serif SC', serif;
+    --font-body: 'Inter', system-ui, sans-serif;
 
     /* Custom tokens */
     --shadow-soft: 0 4px 20px -4px hsl(25 25% 15% / 0.08);
@@ -100,13 +104,89 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: var(--font-body);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Noto Serif SC', serif;
+    font-family: var(--font-heading);
     @apply font-semibold tracking-tight;
   }
+}
+
+/* Spacing variations */
+[data-spacing="compact"] .blog-container {
+  @apply max-w-3xl px-4;
+}
+[data-spacing="spacious"] .blog-container {
+  @apply max-w-5xl px-8;
+}
+[data-spacing="compact"] .blog-card {
+  @apply p-4;
+}
+[data-spacing="spacious"] .blog-card {
+  @apply p-8;
+}
+
+/* Shadow variations */
+[data-shadows="none"] .blog-card {
+  box-shadow: none;
+}
+[data-shadows="subtle"] .blog-card {
+  box-shadow: 0 2px 8px -2px hsl(var(--foreground) / 0.05);
+}
+[data-shadows="medium"] .blog-card {
+  box-shadow: 0 4px 20px -4px hsl(var(--foreground) / 0.1);
+}
+[data-shadows="dramatic"] .blog-card {
+  box-shadow: 8px 8px 0 hsl(var(--foreground) / 0.15);
+}
+
+/* Card style variations */
+[data-card-style="flat"] .blog-card {
+  @apply bg-secondary border-0;
+  box-shadow: none;
+}
+[data-card-style="bordered"] .blog-card {
+  @apply bg-card border-2 border-border;
+}
+[data-card-style="elevated"] .blog-card {
+  @apply bg-card;
+}
+[data-card-style="glass"] .blog-card {
+  @apply bg-card/70 backdrop-blur-md border border-border/50;
+}
+
+/* Button style variations */
+[data-button-style="outline"] .btn-primary {
+  @apply bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground;
+}
+[data-button-style="ghost"] .btn-primary {
+  @apply bg-primary/10 text-primary hover:bg-primary/20 border-0;
+}
+[data-button-style="gradient"] .btn-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  @apply text-primary-foreground border-0;
+}
+
+/* Animation variations */
+[data-animations="none"] * {
+  animation: none !important;
+  transition: none !important;
+}
+[data-animations="minimal"] * {
+  transition-duration: 0.15s !important;
+}
+[data-animations="smooth"] * {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-animations="playful"] .blog-card:hover {
+  transform: translateY(-8px) rotate(-1deg) !important;
+}
+
+/* Brutalist overrides */
+[data-card-style="bordered"][data-shadows="dramatic"] .blog-card {
+  border-width: 3px;
+  border-color: hsl(var(--foreground));
 }
 
 @layer components {
@@ -115,7 +195,7 @@
   }
 
   .blog-card {
-    @apply bg-card rounded-xl p-6 transition-all duration-300;
+    @apply bg-card rounded-[var(--radius)] p-6 transition-all duration-300;
     box-shadow: var(--shadow-soft);
   }
 
