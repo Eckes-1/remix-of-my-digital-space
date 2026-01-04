@@ -108,3 +108,43 @@ export const useDeleteComment = () => {
     },
   });
 };
+
+export const useBulkApproveComments = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ ids, approved }: { ids: string[]; approved: boolean }) => {
+      if (!ids.length) return;
+      const { error } = await supabase
+        .from('comments')
+        .update({ approved })
+        .in('id', ids);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-comments'] });
+      queryClient.invalidateQueries({ queryKey: ['comments'] });
+    },
+  });
+};
+
+export const useBulkDeleteComments = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!ids.length) return;
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .in('id', ids);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-comments'] });
+      queryClient.invalidateQueries({ queryKey: ['comments'] });
+    },
+  });
+};

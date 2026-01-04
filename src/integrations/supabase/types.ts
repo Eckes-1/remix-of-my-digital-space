@@ -152,6 +152,7 @@ export type Database = {
           published_at: string | null
           read_time: string
           slug: string
+          sort_order: number | null
           title: string
           updated_at: string
           view_count: number
@@ -169,6 +170,7 @@ export type Database = {
           published_at?: string | null
           read_time?: string
           slug: string
+          sort_order?: number | null
           title: string
           updated_at?: string
           view_count?: number
@@ -186,6 +188,7 @@ export type Database = {
           published_at?: string | null
           read_time?: string
           slug?: string
+          sort_order?: number | null
           title?: string
           updated_at?: string
           view_count?: number
