@@ -14,6 +14,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ReadingProgress from "./components/ReadingProgress";
+import ThemeStyleInitializer from "./components/ThemeStyleInitializer";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
+        <ThemeStyleInitializer />
         <Toaster />
         <Sonner />
         <ReadingProgress />

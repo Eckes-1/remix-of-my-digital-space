@@ -8,8 +8,11 @@ import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory,
 import { useDashboardStats } from '@/hooks/useStats';
 import { useHeroSettings, useTypewriterSettings, useUpdateHeroSettings, useUpdateTypewriterSettings, useSiteSettings, useUpdateSiteSettings, HeroSettings, TypewriterSettings, SiteSettings } from '@/hooks/useSiteSettings';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import { useThemeStyles, THEME_STYLES } from '@/hooks/useThemeStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { exportToJSON, exportToCSV } from '@/utils/exportData';
+import { createBackup, downloadBackup, restoreBackup, parseBackupFile } from '@/utils/backupRestore';
+import { parseImportFile, ImportPost } from '@/utils/importPosts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,7 +49,10 @@ import {
   Download,
   GripVertical,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  DatabaseBackup,
+  FileUp,
+  RotateCcw
 } from 'lucide-react';
 import {
   Dialog,
@@ -175,6 +181,20 @@ const Admin = () => {
 
   // Site settings state
   const [siteName, setSiteName] = useState('寒冬随笔');
+
+  // Backup and restore state
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const backupInputRef = useRef<HTMLInputElement>(null);
+
+  // Import posts state
+  const [importLoading, setImportLoading] = useState(false);
+  const [importPreview, setImportPreview] = useState<ImportPost[]>([]);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  // Theme styles
+  const { currentTheme, setTheme, themes } = useThemeStyles();
 
   // Auto-save
   const draftData = useMemo(() => ({
@@ -854,6 +874,100 @@ const Admin = () => {
       toast.success("打字机设置已保存");
     } catch (error) {
       toast.error("保存失败");
+    }
+  };
+
+  // Backup handlers
+  const handleCreateBackup = async () => {
+    setBackupLoading(true);
+    try {
+      const backup = await createBackup();
+      downloadBackup(backup);
+      toast.success('备份已创建并下载');
+    } catch (error: any) {
+      toast.error('备份失败: ' + error.message);
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const handleRestoreBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setRestoreLoading(true);
+    try {
+      const backup = await parseBackupFile(file);
+      const result = await restoreBackup(backup);
+      
+      if (result.success) {
+        toast.success('数据恢复成功');
+      } else {
+        toast.error(`恢复完成但有错误: ${result.errors.join(', ')}`);
+      }
+    } catch (error: any) {
+      toast.error('恢复失败: ' + error.message);
+    } finally {
+      setRestoreLoading(false);
+      if (backupInputRef.current) backupInputRef.current.value = '';
+    }
+  };
+
+  // Import posts handlers
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const posts = await parseImportFile(file);
+      if (posts.length === 0) {
+        toast.error('未找到可导入的文章');
+        return;
+      }
+      setImportPreview(posts);
+      setImportDialogOpen(true);
+    } catch (error: any) {
+      toast.error('解析文件失败: ' + error.message);
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview.length) return;
+    
+    setImportLoading(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const post of importPreview) {
+      try {
+        await createPost.mutateAsync({
+          title: post.title,
+          slug: post.slug || '',
+          excerpt: post.excerpt || '',
+          content: post.content,
+          category: post.category || '技术',
+          read_time: post.read_time || '5分钟',
+          published: post.published || false,
+          published_at: post.published ? new Date().toISOString() : null,
+          cover_image: post.cover_image || null,
+          view_count: 0,
+        });
+        successCount++;
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    setImportLoading(false);
+    setImportDialogOpen(false);
+    setImportPreview([]);
+
+    if (errorCount === 0) {
+      toast.success(`成功导入 ${successCount} 篇文章`);
+    } else {
+      toast.warning(`导入完成: ${successCount} 篇成功, ${errorCount} 篇失败`);
     }
   };
 
@@ -1711,6 +1825,104 @@ const Admin = () => {
                     保存网站设置
                   </Button>
                 </div>
+
+                {/* Theme Styles */}
+                <div className="blog-card space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Palette className="w-5 h-5" />
+                    网站风格
+                  </h3>
+                  <p className="text-sm text-muted-foreground">选择一种风格应用到整个网站，支持明暗模式自动适配</p>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                    {themes.map((theme) => (
+                      <button
+                        key={theme.id}
+                        onClick={() => setTheme(theme.id)}
+                        className={`p-3 rounded-lg border-2 transition-all text-left ${
+                          currentTheme === theme.id 
+                            ? 'border-primary bg-primary/10' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div 
+                            className="w-4 h-4 rounded-full" 
+                            style={{ backgroundColor: `hsl(${theme.colors.light['--primary']})` }}
+                          />
+                          {currentTheme === theme.id && <Check className="w-3 h-3 text-primary" />}
+                        </div>
+                        <div className="text-xs font-medium truncate">{theme.name}</div>
+                        <div className="text-[10px] text-muted-foreground line-clamp-1">{theme.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Backup & Restore */}
+                <div className="blog-card space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <DatabaseBackup className="w-5 h-5" />
+                    数据备份与恢复
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    备份所有文章、评论、标签、分类和设置数据。恢复时会合并现有数据。
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCreateBackup}
+                      disabled={backupLoading}
+                    >
+                      {backupLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                      一键备份
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => backupInputRef.current?.click()}
+                      disabled={restoreLoading}
+                    >
+                      {restoreLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                      恢复数据
+                    </Button>
+                    <input
+                      ref={backupInputRef}
+                      type="file"
+                      accept=".json"
+                      className="hidden"
+                      onChange={handleRestoreBackup}
+                    />
+                  </div>
+                </div>
+
+                {/* Import Posts */}
+                <div className="blog-card space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <FileUp className="w-5 h-5" />
+                    导入文章
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    支持从 JSON 或 CSV 文件批量导入文章。文件应包含 title, content 字段，可选 slug, excerpt, category, read_time, published 等字段。
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => importInputRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      选择文件
+                    </Button>
+                    <input
+                      ref={importInputRef}
+                      type="file"
+                      accept=".json,.csv"
+                      className="hidden"
+                      onChange={handleImportFile}
+                    />
+                  </div>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -2127,6 +2339,54 @@ const Admin = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Preview Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>导入预览 ({importPreview.length} 篇文章)</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="space-y-3 pb-4">
+              {importPreview.map((post, index) => (
+                <div key={index} className="p-3 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium truncate">{post.title || '(无标题)'}</span>
+                    {post.published && (
+                      <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">已发布</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground space-x-2">
+                    <span>分类: {post.category || '技术'}</span>
+                    <span>·</span>
+                    <span>阅读时长: {post.read_time || '5分钟'}</span>
+                  </div>
+                  {post.excerpt && (
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{post.excerpt}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          <div className="flex-shrink-0 flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+            <Button 
+              variant="ghost" 
+              onClick={() => { setImportDialogOpen(false); setImportPreview([]); }}
+              className="w-full sm:w-auto"
+            >
+              取消
+            </Button>
+            <Button 
+              onClick={handleConfirmImport}
+              disabled={importLoading}
+              className="w-full sm:w-auto"
+            >
+              {importLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+              确认导入
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
