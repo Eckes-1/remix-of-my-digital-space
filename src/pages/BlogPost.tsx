@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, Clock, Eye } from "lucide-react";
 import { format } from 'date-fns';
@@ -7,6 +7,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
+import ShareButton from "@/components/ShareButton";
+import TableOfContents from "@/components/TableOfContents";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
@@ -30,6 +32,27 @@ const BlogPost = () => {
       incrementView.mutate(slug);
     }
   }, [slug, post?.id]);
+
+  // Parse content with heading IDs
+  const parsedContent = useMemo(() => {
+    if (!post?.content) return [];
+    
+    const paragraphs = post.content.split("\n\n");
+    let headingIndex = 0;
+    
+    return paragraphs.map((paragraph, index) => {
+      if (paragraph.startsWith("## ")) {
+        const id = `heading-${index}`;
+        headingIndex++;
+        return { type: 'heading', content: paragraph.replace("## ", ""), id };
+      }
+      if (paragraph.startsWith("- ")) {
+        const items = paragraph.split("\n").filter(Boolean);
+        return { type: 'list', items: items.map(item => item.replace("- ", "")), id: null };
+      }
+      return { type: 'paragraph', content: paragraph, id: null };
+    });
+  }, [post?.content]);
 
   if (isLoading) {
     return (
@@ -82,77 +105,89 @@ const BlogPost = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
         </div>
         
-        <article className="blog-container -mt-32 relative">
-          <div className="bg-background rounded-xl p-6 md:p-10 shadow-lg">
-            <Link
-              to="/blog"
-              className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              返回文章列表
-            </Link>
-            
-            <header className="mb-12">
-              <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mb-4">
-                {post.category}
-              </span>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-32 relative">
+          <div className="grid lg:grid-cols-[1fr_220px] gap-8">
+            {/* Main content */}
+            <article className="bg-background rounded-xl p-6 md:p-10 shadow-lg">
+              <Link
+                to="/blog"
+                className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                返回文章列表
+              </Link>
               
-              <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
-                {post.title}
-              </h1>
+              <header className="mb-12">
+                <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mb-4">
+                  {post.category}
+                </span>
+                
+                <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
+                  {post.title}
+                </h1>
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4" />
+                    {formattedDate}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" />
+                    {post.read_time}阅读
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Eye className="w-4 h-4" />
+                    {post.view_count} 次阅读
+                  </span>
+                </div>
+              </header>
               
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4" />
-                  {formattedDate}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" />
-                  {post.read_time}阅读
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Eye className="w-4 h-4" />
-                  {post.view_count} 次阅读
-                </span>
+              <div className="prose-blog max-w-none">
+                {parsedContent.map((item, index) => {
+                  if (item.type === 'heading') {
+                    return (
+                      <h2 
+                        key={index} 
+                        id={item.id!}
+                        className="font-serif text-2xl font-semibold text-foreground mt-10 mb-4 scroll-mt-24"
+                      >
+                        {item.content}
+                      </h2>
+                    );
+                  }
+                  if (item.type === 'list') {
+                    return (
+                      <ul key={index} className="list-disc list-inside space-y-2 my-4 text-foreground/80">
+                        {item.items!.map((listItem, i) => (
+                          <li key={i}>{listItem}</li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  return (
+                    <p key={index} className="text-foreground/80 leading-relaxed mb-4">
+                      {item.content}
+                    </p>
+                  );
+                })}
               </div>
-            </header>
-            
-            <div className="prose-blog max-w-none">
-              {post.content.split("\n\n").map((paragraph, index) => {
-                if (paragraph.startsWith("## ")) {
-                  return (
-                    <h2 key={index} className="font-serif text-2xl font-semibold text-foreground mt-10 mb-4">
-                      {paragraph.replace("## ", "")}
-                    </h2>
-                  );
-                }
-                if (paragraph.startsWith("- ")) {
-                  const items = paragraph.split("\n").filter(Boolean);
-                  return (
-                    <ul key={index} className="list-disc list-inside space-y-2 my-4 text-foreground/80">
-                      {items.map((item, i) => (
-                        <li key={i}>{item.replace("- ", "")}</li>
-                      ))}
-                    </ul>
-                  );
-                }
-                return (
-                  <p key={index} className="text-foreground/80 leading-relaxed mb-4">
-                    {paragraph}
-                  </p>
-                );
-              })}
-            </div>
-            
-            {/* Like Button */}
-            <div className="flex items-center justify-center mt-10 mb-8">
-              <LikeButton postId={post.id} />
-            </div>
-            
-            {/* Comments */}
-            <CommentSection postId={post.id} />
+              
+              {/* Like & Share Buttons */}
+              <div className="flex items-center justify-center gap-4 mt-10 mb-8">
+                <LikeButton postId={post.id} />
+                <ShareButton title={post.title} />
+              </div>
+              
+              {/* Comments */}
+              <CommentSection postId={post.id} />
+            </article>
+
+            {/* Sidebar with TOC */}
+            <aside className="hidden lg:block">
+              <TableOfContents content={post.content} />
+            </aside>
           </div>
-        </article>
+        </div>
       </main>
       
       <Footer />
