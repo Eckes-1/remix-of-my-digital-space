@@ -4,6 +4,7 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Settings, Menu, X, Home, BookOpen, Archive, User, Rss } from "lucide-react";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
+import BookmarksList from "./BookmarksList";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -11,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
 const Header = () => {
   const location = useLocation();
   const { user, isAdmin } = useAuth();
@@ -90,6 +92,9 @@ const Header = () => {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            {/* Bookmarks */}
+            <BookmarksList />
 
             {isAdmin && (
               <Link

@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
+import BookmarkButton from "@/components/BookmarkButton";
 import TableOfContents from "@/components/TableOfContents";
 import RelatedPosts from "@/components/RelatedPosts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -247,10 +248,20 @@ const BlogPost = () => {
                 })}
               </div>
               
-              {/* Like & Share Buttons */}
-              <div className="flex items-center justify-center gap-4 mt-10 mb-8">
+              {/* Like, Share & Bookmark Buttons */}
+              <div className="flex items-center justify-center gap-3 mt-10 mb-8">
                 <LikeButton postId={post.id} />
                 <ShareButton title={post.title} />
+                <BookmarkButton 
+                  post={{
+                    slug: post.slug,
+                    title: post.title,
+                    excerpt: post.excerpt,
+                    category: post.category,
+                    coverImage: post.cover_image || undefined,
+                  }}
+                  showLabel
+                />
               </div>
 
               {/* Related Posts */}
