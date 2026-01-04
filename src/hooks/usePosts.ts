@@ -17,6 +17,7 @@ export interface Post {
   updated_at: string;
   view_count: number;
   sort_order?: number;
+  author_id?: string | null;
 }
 
 export const usePosts = (published: boolean = true) => {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Eye, User } from "lucide-react";
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Header from "@/components/Header";
@@ -10,7 +10,9 @@ import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
 import TableOfContents from "@/components/TableOfContents";
 import RelatedPosts from "@/components/RelatedPosts";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
+import { useAuthor } from "@/hooks/useAuthors";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
@@ -27,6 +29,7 @@ const BlogPost = () => {
   const { slug } = useParams();
   const { data: post, isLoading, error } = usePost(slug || '');
   const incrementView = useIncrementViewCount();
+  const { data: author } = useAuthor((post as any)?.author_id || null);
 
   useEffect(() => {
     if (slug && post) {
@@ -124,6 +127,24 @@ const BlogPost = () => {
                 <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
                   {post.title}
                 </h1>
+                
+                {/* Author info */}
+                {author && (
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={author.avatar_url || undefined} alt={author.name} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {author.name.slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium text-foreground">{author.name}</div>
+                      {author.bio && (
+                        <div className="text-xs text-muted-foreground line-clamp-1">{author.bio}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
