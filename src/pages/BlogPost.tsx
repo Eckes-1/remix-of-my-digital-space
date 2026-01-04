@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Eye, BookOpen } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Eye, BookOpen, X } from "lucide-react";
 import { format, formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Header from "@/components/Header";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
 import { useAuthor } from "@/hooks/useAuthors";
 import { useReadingProgress, getLastReadProgress } from "@/hooks/useReadingProgress";
+import { cn } from "@/lib/utils";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
@@ -36,6 +37,7 @@ const BlogPost = () => {
   const { getSavedProgress } = useReadingProgress(slug);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedScrollPosition, setSavedScrollPosition] = useState<number | null>(null);
+  const [isReadingMode, setIsReadingMode] = useState(false);
 
   // Check for saved reading progress on mount
   useEffect(() => {
@@ -54,6 +56,17 @@ const BlogPost = () => {
       incrementView.mutate(slug);
     }
   }, [slug, post?.id]);
+
+  // Exit reading mode on escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isReadingMode) {
+        setIsReadingMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isReadingMode]);
 
   const handleResumeReading = () => {
     if (savedScrollPosition) {
@@ -124,8 +137,11 @@ const BlogPost = () => {
   const lastReadInfo = slug ? getLastReadProgress(slug) : null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className={cn(
+      "min-h-screen flex flex-col transition-all duration-500",
+      isReadingMode && "bg-[#f9f7f1] dark:bg-[#1a1a1a]"
+    )}>
+      {!isReadingMode && <Header />}
       
       {/* Resume Reading Prompt */}
       {showResumePrompt && (
@@ -151,49 +167,96 @@ const BlogPost = () => {
           </div>
         </div>
       )}
+
+      {/* Reading Mode Exit Button */}
+      {isReadingMode && (
+        <button
+          onClick={() => setIsReadingMode(false)}
+          className="fixed top-4 right-4 z-50 p-3 rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-all duration-300 animate-fade-in"
+          title="退出阅读模式 (ESC)"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
       
-      <main className="flex-1 py-8">
-        {/* Hero Image */}
-        <div className="relative h-64 md:h-96 mb-8 overflow-hidden">
-          <img
-            src={cover}
-            alt={post.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-        </div>
+      <main className={cn(
+        "flex-1 transition-all duration-500",
+        isReadingMode ? "py-12" : "py-8"
+      )}>
+        {/* Hero Image - hidden in reading mode */}
+        {!isReadingMode && (
+          <div className="relative h-64 md:h-96 mb-8 overflow-hidden">
+            <img
+              src={cover}
+              alt={post.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+          </div>
+        )}
         
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-32 relative">
-          <div className="grid lg:grid-cols-[1fr_220px] gap-8">
+        <div className={cn(
+          "mx-auto px-4 sm:px-6 transition-all duration-500",
+          isReadingMode 
+            ? "max-w-3xl" 
+            : "max-w-6xl -mt-32 relative"
+        )}>
+          <div className={cn(
+            "transition-all duration-500",
+            isReadingMode 
+              ? "" 
+              : "grid lg:grid-cols-[1fr_220px] gap-8"
+          )}>
             {/* Main content */}
-            <article className="bg-background rounded-xl p-6 md:p-10 shadow-lg">
-              <Link
-                to="/blog"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                返回文章列表
-              </Link>
+            <article className={cn(
+              "rounded-xl transition-all duration-500",
+              isReadingMode 
+                ? "bg-transparent p-0" 
+                : "bg-background p-6 md:p-10 shadow-lg"
+            )}>
+              {!isReadingMode && (
+                <Link
+                  to="/blog"
+                  className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  返回文章列表
+                </Link>
+              )}
               
-              <header className="mb-12">
-                <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mb-4">
+              <header className={cn(
+                "transition-all duration-500",
+                isReadingMode ? "mb-16 text-center" : "mb-12"
+              )}>
+                <span className={cn(
+                  "inline-block text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mb-4",
+                  isReadingMode && "mb-6"
+                )}>
                   {post.category}
                 </span>
                 
-                <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
+                <h1 className={cn(
+                  "font-serif font-bold text-foreground leading-tight transition-all duration-500",
+                  isReadingMode 
+                    ? "text-4xl md:text-5xl lg:text-6xl mb-8" 
+                    : "text-3xl md:text-4xl lg:text-5xl mb-6"
+                )}>
                   {post.title}
                 </h1>
                 
                 {/* Author info */}
                 {author && (
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className={cn(
+                    "flex items-center gap-3 mb-4",
+                    isReadingMode && "justify-center"
+                  )}>
                     <Avatar className="w-10 h-10">
                       <AvatarImage src={author.avatar_url || undefined} alt={author.name} />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {author.name.slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
+                    <div className={isReadingMode ? "text-center" : ""}>
                       <div className="font-medium text-foreground">{author.name}</div>
                       {author.bio && (
                         <div className="text-xs text-muted-foreground line-clamp-1">{author.bio}</div>
@@ -202,7 +265,10 @@ const BlogPost = () => {
                   </div>
                 )}
                 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <div className={cn(
+                  "flex flex-wrap items-center gap-4 text-sm text-muted-foreground",
+                  isReadingMode && "justify-center"
+                )}>
                   <span className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4" />
                     {formattedDate}
@@ -215,17 +281,35 @@ const BlogPost = () => {
                     <Eye className="w-4 h-4" />
                     {post.view_count} 次阅读
                   </span>
+                  {/* Reading mode toggle button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsReadingMode(!isReadingMode)}
+                    className="gap-2 ml-2"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    {isReadingMode ? "退出阅读" : "阅读模式"}
+                  </Button>
                 </div>
               </header>
               
-              <div className="prose-blog max-w-none">
+              <div className={cn(
+                "prose-blog max-w-none transition-all duration-500",
+                isReadingMode && "text-lg leading-loose [&_p]:mb-6 [&_h2]:mt-16 [&_h2]:mb-8"
+              )}>
                 {parsedContent.map((item, index) => {
                   if (item.type === 'heading') {
                     return (
                       <h2 
                         key={index} 
                         id={item.id!}
-                        className="font-serif text-2xl font-semibold text-foreground mt-10 mb-4 scroll-mt-24"
+                        className={cn(
+                          "font-serif font-semibold text-foreground scroll-mt-24",
+                          isReadingMode 
+                            ? "text-3xl mt-16 mb-8" 
+                            : "text-2xl mt-10 mb-4"
+                        )}
                       >
                         {item.content}
                       </h2>
@@ -233,7 +317,10 @@ const BlogPost = () => {
                   }
                   if (item.type === 'list') {
                     return (
-                      <ul key={index} className="list-disc list-inside space-y-2 my-4 text-foreground/80">
+                      <ul key={index} className={cn(
+                        "list-disc list-inside space-y-2 my-4 text-foreground/80",
+                        isReadingMode && "text-lg"
+                      )}>
                         {item.items!.map((listItem, i) => (
                           <li key={i}>{listItem}</li>
                         ))}
@@ -241,7 +328,10 @@ const BlogPost = () => {
                     );
                   }
                   return (
-                    <p key={index} className="text-foreground/80 leading-relaxed mb-4">
+                    <p key={index} className={cn(
+                      "text-foreground/80 leading-relaxed mb-4",
+                      isReadingMode && "text-lg leading-loose mb-6"
+                    )}>
                       {item.content}
                     </p>
                   );
@@ -264,22 +354,24 @@ const BlogPost = () => {
                 />
               </div>
 
-              {/* Related Posts */}
-              <RelatedPosts currentPostId={post.id} category={post.category} />
+              {/* Related Posts - hidden in reading mode */}
+              {!isReadingMode && <RelatedPosts currentPostId={post.id} category={post.category} />}
               
               {/* Comments */}
               <CommentSection postId={post.id} />
             </article>
 
-            {/* Sidebar with TOC */}
-            <aside className="hidden lg:block">
-              <TableOfContents content={post.content} />
-            </aside>
+            {/* Sidebar with TOC - hidden in reading mode */}
+            {!isReadingMode && (
+              <aside className="hidden lg:block">
+                <TableOfContents content={post.content} />
+              </aside>
+            )}
           </div>
         </div>
       </main>
       
-      <Footer />
+      {!isReadingMode && <Footer />}
     </div>
   );
 };

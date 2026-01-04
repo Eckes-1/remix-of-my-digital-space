@@ -154,6 +154,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean | null
+          lyrics: string | null
           sort_order: number | null
           title: string
           updated_at: string
@@ -164,6 +165,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          lyrics?: string | null
           sort_order?: number | null
           title: string
           updated_at?: string
@@ -174,6 +176,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          lyrics?: string | null
           sort_order?: number | null
           title?: string
           updated_at?: string

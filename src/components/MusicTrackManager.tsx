@@ -38,20 +38,45 @@ const MusicTrackManager = () => {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [url, setUrl] = useState('');
+  const [lyrics, setLyrics] = useState('');
   const [sortOrder, setSortOrder] = useState(0);
   const [isActive, setIsActive] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMode, setUploadMode] = useState<'url' | 'upload'>('url');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lyricsInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setTitle('');
     setArtist('');
     setUrl('');
+    setLyrics('');
     setSortOrder(0);
     setIsActive(true);
     setEditingTrack(null);
     setUploadMode('url');
+  };
+
+  const handleLyricsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.lrc') && !file.name.endsWith('.txt')) {
+      toast.error('请上传 LRC 或 TXT 格式的歌词文件');
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      setLyrics(text);
+      toast.success('歌词文件已加载');
+    } catch (error) {
+      toast.error('读取歌词文件失败');
+    }
+    
+    if (lyricsInputRef.current) {
+      lyricsInputRef.current.value = '';
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,6 +144,7 @@ const MusicTrackManager = () => {
     setTitle(track.title);
     setArtist(track.artist);
     setUrl(track.url);
+    setLyrics((track as any).lyrics || '');
     setSortOrder(track.sort_order);
     setIsActive(track.is_active);
     setIsDialogOpen(true);
@@ -138,18 +164,20 @@ const MusicTrackManager = () => {
           title: title.trim(),
           artist: artist.trim() || '未知艺术家',
           url: url.trim(),
+          lyrics: lyrics.trim() || undefined,
           sort_order: sortOrder,
           is_active: isActive,
-        });
+        } as any);
         toast.success('曲目已更新');
       } else {
         await createTrack.mutateAsync({
           title: title.trim(),
           artist: artist.trim() || '未知艺术家',
           url: url.trim(),
+          lyrics: lyrics.trim() || undefined,
           sort_order: sortOrder,
           is_active: isActive,
-        });
+        } as any);
         toast.success('曲目已添加');
       }
       setIsDialogOpen(false);
@@ -325,6 +353,50 @@ const MusicTrackManager = () => {
                   </div>
                 </TabsContent>
               </Tabs>
+            </div>
+            
+            {/* Lyrics upload */}
+            <div>
+              <Label>LRC 歌词 (可选)</Label>
+              <div className="mt-2 space-y-2">
+                <input
+                  ref={lyricsInputRef}
+                  type="file"
+                  accept=".lrc,.txt"
+                  onChange={handleLyricsUpload}
+                  className="hidden"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => lyricsInputRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-1" />
+                    上传歌词文件
+                  </Button>
+                  {lyrics && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setLyrics('')}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      清除
+                    </Button>
+                  )}
+                </div>
+                {lyrics && (
+                  <div className="p-2 bg-secondary/50 rounded text-xs text-muted-foreground max-h-20 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap">{lyrics.slice(0, 200)}...</pre>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  支持 LRC 格式歌词，可同步显示在播放器中
+                </p>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
