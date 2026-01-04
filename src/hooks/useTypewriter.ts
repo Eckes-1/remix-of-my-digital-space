@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface UseTypewriterProps {
   text: string;
@@ -16,58 +16,71 @@ export const useTypewriter = ({
   loopDelay = 2000 
 }: UseTypewriterProps) => {
   const [displayText, setDisplayText] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isWaiting, setIsWaiting] = useState(false);
+  const [phase, setPhase] = useState<'delay' | 'typing' | 'waiting' | 'deleting'>('delay');
+  const indexRef = useRef(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const clearTimer = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  }, []);
 
   useEffect(() => {
+    // Reset on text change
+    clearTimer();
     setDisplayText('');
-    setCurrentIndex(0);
-    setIsDeleting(false);
-    setIsWaiting(false);
-  }, [text]);
+    setPhase('delay');
+    indexRef.current = 0;
+  }, [text, clearTimer]);
 
   useEffect(() => {
-    if (isWaiting) return;
+    clearTimer();
 
-    // Typing phase
-    if (!isDeleting && currentIndex < text.length) {
-      const delayTimeout = currentIndex === 0 && displayText === '' ? delay : 0;
-      
-      const timeout = setTimeout(() => {
-        setDisplayText(prev => prev + text[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
-      }, delayTimeout + speed);
-
-      return () => clearTimeout(timeout);
+    if (phase === 'delay') {
+      timeoutRef.current = setTimeout(() => {
+        setPhase('typing');
+      }, delay);
+      return;
     }
 
-    // Finished typing - wait before deleting (if loop)
-    if (!isDeleting && currentIndex >= text.length && loop) {
-      setIsWaiting(true);
-      const timeout = setTimeout(() => {
-        setIsWaiting(false);
-        setIsDeleting(true);
+    if (phase === 'typing') {
+      if (indexRef.current < text.length) {
+        timeoutRef.current = setTimeout(() => {
+          setDisplayText(text.slice(0, indexRef.current + 1));
+          indexRef.current += 1;
+        }, speed);
+      } else {
+        // Finished typing
+        if (loop) {
+          setPhase('waiting');
+        }
+      }
+      return;
+    }
+
+    if (phase === 'waiting') {
+      timeoutRef.current = setTimeout(() => {
+        setPhase('deleting');
       }, loopDelay);
-
-      return () => clearTimeout(timeout);
+      return;
     }
 
-    // Deleting phase
-    if (isDeleting && displayText.length > 0) {
-      const timeout = setTimeout(() => {
-        setDisplayText(prev => prev.slice(0, -1));
-      }, speed / 2);
-
-      return () => clearTimeout(timeout);
+    if (phase === 'deleting') {
+      if (displayText.length > 0) {
+        timeoutRef.current = setTimeout(() => {
+          setDisplayText(prev => prev.slice(0, -1));
+        }, speed / 2);
+      } else {
+        // Finished deleting, restart
+        indexRef.current = 0;
+        setPhase('typing');
+      }
+      return;
     }
 
-    // Finished deleting - restart
-    if (isDeleting && displayText.length === 0) {
-      setIsDeleting(false);
-      setCurrentIndex(0);
-    }
-  }, [currentIndex, text, speed, delay, loop, loopDelay, isDeleting, displayText, isWaiting]);
+    return clearTimer;
+  }, [phase, text, speed, delay, loop, loopDelay, displayText.length, clearTimer]);
 
-  return { displayText, isComplete: false };
+  return { displayText, isComplete: !loop && phase === 'typing' && indexRef.current >= text.length };
 };

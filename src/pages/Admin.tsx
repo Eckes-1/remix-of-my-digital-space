@@ -183,24 +183,48 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="font-serif text-xl font-semibold text-foreground">后台管理</h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user.email}</span>
-            {isAdmin && (
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">管理员</span>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              退出
-            </Button>
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-center justify-between h-16">
+            {/* Left side */}
+            <div className="flex items-center gap-6">
+              <Link 
+                to="/" 
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-sm hidden sm:inline">返回首页</span>
+              </Link>
+              <div className="h-5 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-primary" />
+                </div>
+                <h1 className="font-serif text-lg font-semibold text-foreground">后台管理</h1>
+              </div>
+            </div>
+            
+            {/* Right side */}
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 bg-secondary/50 rounded-full px-3 py-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-xs text-muted-foreground">{user.email}</span>
+                {isAdmin && (
+                  <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                    管理员
+                  </span>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSignOut}
+                className="rounded-full"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                退出
+              </Button>
+            </div>
           </div>
         </div>
       </header>
