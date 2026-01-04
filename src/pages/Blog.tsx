@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Calendar, Filter, X } from 'lucide-react';
+import { Calendar, Filter, X, User } from 'lucide-react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BlogCard from "@/components/BlogCard";
@@ -8,6 +8,7 @@ import SearchBar from "@/components/SearchBar";
 import { usePosts } from "@/hooks/usePosts";
 import { useTags } from "@/hooks/useTags";
 import { useCategories } from "@/hooks/useCategories";
+import { useAuthors } from "@/hooks/useAuthors";
 import { useAdvancedSearch, SearchFilters } from "@/hooks/useAdvancedSearch";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -21,6 +22,7 @@ const Blog = () => {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [showFilters, setShowFilters] = useState(false);
@@ -28,16 +30,18 @@ const Blog = () => {
   const { data: posts, isLoading: postsLoading } = usePosts();
   const { data: tags } = useTags();
   const { data: categories } = useCategories();
+  const { data: authors } = useAuthors();
   
   const filters: SearchFilters = {
     query: searchQuery || undefined,
     category: selectedCategory || undefined,
     tagId: selectedTag || undefined,
+    authorId: selectedAuthor || undefined,
     dateFrom,
     dateTo,
   };
   
-  const hasFilters = searchQuery || selectedCategory || selectedTag || dateFrom || dateTo;
+  const hasFilters = searchQuery || selectedCategory || selectedTag || selectedAuthor || dateFrom || dateTo;
   
   const { data: filteredPosts, isLoading: searchLoading } = useAdvancedSearch(
     hasFilters ? filters : { query: '' }
@@ -56,6 +60,7 @@ const Blog = () => {
     setSearchQuery('');
     setSelectedCategory(null);
     setSelectedTag(null);
+    setSelectedAuthor(null);
     setDateFrom(undefined);
     setDateTo(undefined);
     setSearchParams({});
@@ -107,7 +112,7 @@ const Blog = () => {
                 )}
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Tag Filter */}
                 <div>
                   <label className="text-sm text-muted-foreground mb-2 block">标签</label>
@@ -119,6 +124,21 @@ const Blog = () => {
                     <option value="">全部标签</option>
                     {tags?.map((tag) => (
                       <option key={tag.id} value={tag.id}>{tag.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Author Filter */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">作者</label>
+                  <select
+                    value={selectedAuthor || ''}
+                    onChange={(e) => setSelectedAuthor(e.target.value || null)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
+                  >
+                    <option value="">全部作者</option>
+                    {authors?.map((author) => (
+                      <option key={author.id} value={author.id}>{author.name}</option>
                     ))}
                   </select>
                 </div>

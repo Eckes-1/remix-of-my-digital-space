@@ -6,6 +6,7 @@ export interface SearchFilters {
   query?: string;
   category?: string;
   tagId?: string;
+  authorId?: string;
   dateFrom?: Date;
   dateTo?: Date;
 }
@@ -44,6 +45,11 @@ export const useAdvancedSearch = (filters: SearchFilters) => {
       if (error) throw error;
       
       let posts = data as Post[];
+      
+      // Author filter
+      if (filters.authorId) {
+        posts = posts.filter(post => (post as any).author_id === filters.authorId);
+      }
       
       // Tag filter - need to filter in JS since it requires a join
       if (filters.tagId) {
