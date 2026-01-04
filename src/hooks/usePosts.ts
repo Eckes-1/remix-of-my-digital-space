@@ -16,6 +16,7 @@ export interface Post {
   created_at: string;
   updated_at: string;
   view_count: number;
+  like_count: number;
   sort_order?: number;
   author_id?: string | null;
 }

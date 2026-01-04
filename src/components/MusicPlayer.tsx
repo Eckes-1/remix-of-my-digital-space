@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Music, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMusicTracks } from '@/hooks/useMusicTracks';
 
 interface Track {
   id: string;
@@ -31,6 +32,7 @@ const defaultTracks: Track[] = [
 ];
 
 const MusicPlayer = () => {
+  const { data: customTracks } = useMusicTracks(true);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -41,8 +43,11 @@ const MusicPlayer = () => {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   
-  const tracks = defaultTracks;
-  const currentTrack = tracks[currentTrackIndex];
+  // Use custom tracks if available, otherwise use defaults
+  const tracks: Track[] = customTracks && customTracks.length > 0 
+    ? customTracks.map(t => ({ id: t.id, title: t.title, artist: t.artist, url: t.url }))
+    : defaultTracks;
+  const currentTrack = tracks[currentTrackIndex] || tracks[0];
 
   useEffect(() => {
     if (audioRef.current) {
@@ -127,8 +132,8 @@ const MusicPlayer = () => {
     <>
       <audio ref={audioRef} src={currentTrack.url} preload="metadata" />
       
-      {/* Floating player - positioned at bottom-left to avoid back-to-top button */}
-      <div className="fixed bottom-4 left-4 z-40">
+      {/* Floating player - positioned at bottom-right but above back-to-top button */}
+      <div className="fixed bottom-24 right-6 z-40">
         {!isExpanded ? (
           /* Collapsed state - vinyl disc style */
           <button

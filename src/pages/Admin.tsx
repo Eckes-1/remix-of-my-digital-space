@@ -21,6 +21,8 @@ import { createBackup, downloadBackup, restoreBackup, parseBackupFile } from '@/
 import { parseImportFile, ImportPost } from '@/utils/importPosts';
 import ArticlePreview from '@/components/ArticlePreview';
 import AuthorManager from '@/components/AuthorManager';
+import StatsCharts from '@/components/StatsCharts';
+import MusicTrackManager from '@/components/MusicTrackManager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1336,6 +1338,7 @@ const Admin = () => {
           published_at: post.published ? new Date().toISOString() : null,
           cover_image: post.cover_image || null,
           view_count: 0,
+          like_count: 0,
         });
         successCount++;
       } catch (error) {
@@ -1525,6 +1528,12 @@ const Admin = () => {
                     </Button>
                   </div>
                 </div>
+              </div>
+
+              {/* Stats Charts */}
+              <div className="mt-6">
+                <h3 className="font-serif text-lg font-semibold text-foreground mb-4">数据分析</h3>
+                <StatsCharts />
               </div>
             </TabsContent>
 
@@ -2459,6 +2468,11 @@ const Admin = () => {
                 {/* Author Management */}
                 <div className="blog-card">
                   <AuthorManager onLog={logAction} />
+                </div>
+
+                {/* Music Playlist Management */}
+                <div className="blog-card">
+                  <MusicTrackManager />
                 </div>
               </div>
             </TabsContent>
