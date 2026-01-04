@@ -15,6 +15,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ReadingProgress from "./components/ReadingProgress";
 import ThemeStyleInitializer from "./components/ThemeStyleInitializer";
+import MusicPlayer from "./components/MusicPlayer";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <ReadingProgress />
+        <MusicPlayer />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

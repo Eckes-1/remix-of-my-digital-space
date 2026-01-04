@@ -73,6 +73,7 @@ export type Database = {
       }
       comments: {
         Row: {
+          admin_reply: string | null
           approved: boolean
           author_email: string
           author_name: string
@@ -80,8 +81,11 @@ export type Database = {
           created_at: string
           id: string
           post_id: string
+          replied_at: string | null
+          replied_by: string | null
         }
         Insert: {
+          admin_reply?: string | null
           approved?: boolean
           author_email: string
           author_name: string
@@ -89,8 +93,11 @@ export type Database = {
           created_at?: string
           id?: string
           post_id: string
+          replied_at?: string | null
+          replied_by?: string | null
         }
         Update: {
+          admin_reply?: string | null
           approved?: boolean
           author_email?: string
           author_name?: string
@@ -98,6 +105,8 @@ export type Database = {
           created_at?: string
           id?: string
           post_id?: string
+          replied_at?: string | null
+          replied_by?: string | null
         }
         Relationships: [
           {

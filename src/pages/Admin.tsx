@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePosts, useCreatePost, useUpdatePost, useDeletePost, useBulkUpdatePosts, useBulkDeletePosts, useUpdatePostOrder, Post } from '@/hooks/usePosts';
 import { useAllComments, useApproveComment, useDeleteComment, useBulkApproveComments, useBulkDeleteComments, Comment } from '@/hooks/useComments';
+import { useReplyComment, useDeleteCommentReply } from '@/hooks/useReplyComment';
 import { useTagsManagement, useCreateTag, useUpdateTag, useDeleteTag, Tag } from '@/hooks/useTagsManagement';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, Category } from '@/hooks/useCategories';
 import { useDashboardStats } from '@/hooks/useStats';
@@ -11,7 +12,8 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useThemeStyles, THEME_STYLES } from '@/hooks/useThemeStyles';
 import { usePostVersions, useCreatePostVersion, useRestorePostVersion, PostVersion } from '@/hooks/usePostVersions';
 import { useSchedulePost, useCancelSchedule, formatDateTimeLocal, isScheduled } from '@/hooks/useScheduledPublish';
-import { useAdminLogs, useActionLogger, getActionLabel, getEntityLabel, AdminLog } from '@/hooks/useAdminLogs';
+import { useAdminLogs, useActionLogger, getActionLabel, getEntityLabel, AdminLog, ActionType, EntityType } from '@/hooks/useAdminLogs';
+import { usePostTags, useUpdatePostTags } from '@/hooks/usePostTags';
 import { supabase } from '@/integrations/supabase/client';
 import { exportToJSON, exportToCSV } from '@/utils/exportData';
 import { createBackup, downloadBackup, restoreBackup, parseBackupFile } from '@/utils/backupRestore';
@@ -62,7 +64,9 @@ import {
   RotateCw,
   Rss,
   ClipboardList,
-  BookOpen
+  BookOpen,
+  Reply,
+  Send
 } from 'lucide-react';
 import {
   Dialog,
@@ -107,6 +111,8 @@ const Admin = () => {
   const bulkDeletePosts = useBulkDeletePosts();
   const updatePostOrder = useUpdatePostOrder();
   const approveComment = useApproveComment();
+  const replyComment = useReplyComment();
+  const deleteCommentReply = useDeleteCommentReply();
   const deleteComment = useDeleteComment();
   const bulkApproveComments = useBulkApproveComments();
   const bulkDeleteComments = useBulkDeleteComments();
@@ -226,6 +232,21 @@ const Admin = () => {
   const restoreVersion = useRestorePostVersion();
   const [compareVersions, setCompareVersions] = useState<{ v1: PostVersion | null; v2: PostVersion | null }>({ v1: null, v2: null });
 
+  // Post tags state
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const updatePostTags = useUpdatePostTags();
+  const { data: currentPostTags } = usePostTags(editingPost?.id || null);
+
+  // Comment reply state
+  const [replyingCommentId, setReplyingCommentId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+
+  // Log filter state
+  const [logFilterAction, setLogFilterAction] = useState<string>('all');
+  const [logFilterEntity, setLogFilterEntity] = useState<string>('all');
+  const [logFilterDateStart, setLogFilterDateStart] = useState<string>('');
+  const [logFilterDateEnd, setLogFilterDateEnd] = useState<string>('');
+
   // Auto-save
   const draftData = useMemo(() => ({
     title,
@@ -256,6 +277,27 @@ const Admin = () => {
     return [...new Set(posts.map(p => p.category))];
   }, [posts]);
 
+  // Filtered admin logs
+  const filteredLogs = useMemo(() => {
+    if (!adminLogs) return [];
+    return adminLogs.filter(log => {
+      if (logFilterAction !== 'all' && log.action !== logFilterAction) return false;
+      if (logFilterEntity !== 'all' && log.entity_type !== logFilterEntity) return false;
+      if (logFilterDateStart) {
+        const logDate = new Date(log.created_at);
+        const startDate = new Date(logFilterDateStart);
+        if (logDate < startDate) return false;
+      }
+      if (logFilterDateEnd) {
+        const logDate = new Date(log.created_at);
+        const endDate = new Date(logFilterDateEnd);
+        endDate.setHours(23, 59, 59, 999);
+        if (logDate > endDate) return false;
+      }
+      return true;
+    });
+  }, [adminLogs, logFilterAction, logFilterEntity, logFilterDateStart, logFilterDateEnd]);
+
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
@@ -274,8 +316,16 @@ const Admin = () => {
       setCoverImage(editingPost.cover_image);
     } else {
       resetForm();
+      setSelectedTagIds([]);
     }
   }, [editingPost]);
+
+  // Load current post tags when editing
+  useEffect(() => {
+    if (currentPostTags && editingPost) {
+      setSelectedTagIds(currentPostTags.map((pt: any) => pt.tag_id));
+    }
+  }, [currentPostTags, editingPost]);
 
   useEffect(() => {
     if (heroSettings) {
@@ -442,12 +492,18 @@ const Admin = () => {
           cover_image: coverImage,
         });
         
+        // Update post tags
+        if (selectedTagIds.length > 0) {
+          await updatePostTags.mutateAsync({ postId: editingPost.id, tagIds: selectedTagIds });
+        }
+        
         // Log update action with details
         logAction('update', 'post', title, editingPost.id, {
           changes: {
             title: title !== editingPost.title ? { from: editingPost.title, to: title } : undefined,
             category: category !== editingPost.category ? { from: editingPost.category, to: category } : undefined,
             published: published !== editingPost.published ? { from: editingPost.published, to: published } : undefined,
+            tags: selectedTagIds,
           },
           timestamp: new Date().toISOString(),
         });
@@ -467,10 +523,16 @@ const Admin = () => {
           view_count: 0,
         });
         
+        // Update post tags for new post
+        if (result && selectedTagIds.length > 0) {
+          await updatePostTags.mutateAsync({ postId: result.id, tagIds: selectedTagIds });
+        }
+        
         // Log create action
-        logAction('create', 'post', title, undefined, {
+        logAction('create', 'post', title, result?.id, {
           category,
           published,
+          tags: selectedTagIds,
           timestamp: new Date().toISOString(),
         });
         
@@ -766,6 +828,41 @@ const Admin = () => {
       setDeleteCommentId(null);
     } catch (error) {
       toast.error("删除失败");
+    }
+  };
+
+  // Comment reply handlers
+  const handleReplyComment = async () => {
+    if (!replyingCommentId || !replyContent.trim()) {
+      toast.error('请输入回复内容');
+      return;
+    }
+    const comment = comments?.find(c => c.id === replyingCommentId);
+    try {
+      await replyComment.mutateAsync({ commentId: replyingCommentId, reply: replyContent.trim() });
+      logAction('update', 'comment', `回复评论: ${comment?.author_name}`, replyingCommentId, {
+        replyContent: replyContent.substring(0, 100),
+        postTitle: comment?.posts.title,
+        timestamp: new Date().toISOString(),
+      });
+      toast.success('回复成功');
+      setReplyingCommentId(null);
+      setReplyContent('');
+    } catch (error) {
+      toast.error('回复失败');
+    }
+  };
+
+  const handleDeleteReply = async (commentId: string) => {
+    const comment = comments?.find(c => c.id === commentId);
+    try {
+      await deleteCommentReply.mutateAsync(commentId);
+      logAction('delete', 'comment', `删除回复: ${comment?.author_name}`, commentId, {
+        timestamp: new Date().toISOString(),
+      });
+      toast.success('回复已删除');
+    } catch (error) {
+      toast.error('删除回复失败');
     }
   };
 
@@ -1745,6 +1842,17 @@ const Admin = () => {
                           onSelect={() => toggleCommentSelected(comment.id)}
                           onApprove={() => handleApproveComment(comment.id, true)}
                           onDelete={() => setDeleteCommentId(comment.id)}
+                          onReply={() => {
+                            setReplyingCommentId(comment.id);
+                            setReplyContent((comment as any).admin_reply || '');
+                          }}
+                          onDeleteReply={() => handleDeleteReply(comment.id)}
+                          isReplying={replyingCommentId === comment.id}
+                          replyContent={replyingCommentId === comment.id ? replyContent : ''}
+                          onReplyContentChange={(v) => setReplyContent(v)}
+                          onSubmitReply={handleReplyComment}
+                          onCancelReply={() => { setReplyingCommentId(null); setReplyContent(''); }}
+                          isReplyLoading={replyComment.isPending}
                         />
                       ))}
                     </div>
@@ -1764,6 +1872,17 @@ const Admin = () => {
                           onSelect={() => toggleCommentSelected(comment.id)}
                           onApprove={() => handleApproveComment(comment.id, false)}
                           onDelete={() => setDeleteCommentId(comment.id)}
+                          onReply={() => {
+                            setReplyingCommentId(comment.id);
+                            setReplyContent((comment as any).admin_reply || '');
+                          }}
+                          onDeleteReply={() => handleDeleteReply(comment.id)}
+                          isReplying={replyingCommentId === comment.id}
+                          replyContent={replyingCommentId === comment.id ? replyContent : ''}
+                          onReplyContentChange={(v) => setReplyContent(v)}
+                          onSubmitReply={handleReplyComment}
+                          onCancelReply={() => { setReplyingCommentId(null); setReplyContent(''); }}
+                          isReplyLoading={replyComment.isPending}
                           isApproved
                         />
                       ))}
@@ -2311,22 +2430,108 @@ const Admin = () => {
             <TabsContent value="logs" className="space-y-4 sm:space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
-                  操作日志
+                  操作日志 ({filteredLogs.length})
                 </h2>
+              </div>
+
+              {/* Log Filters */}
+              <div className="blog-card p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">筛选条件</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">操作类型</Label>
+                    <Select value={logFilterAction} onValueChange={setLogFilterAction}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="全部操作" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部操作</SelectItem>
+                        <SelectItem value="create">创建</SelectItem>
+                        <SelectItem value="update">更新</SelectItem>
+                        <SelectItem value="delete">删除</SelectItem>
+                        <SelectItem value="publish">发布</SelectItem>
+                        <SelectItem value="unpublish">取消发布</SelectItem>
+                        <SelectItem value="approve">审核通过</SelectItem>
+                        <SelectItem value="reject">审核拒绝</SelectItem>
+                        <SelectItem value="backup">备份</SelectItem>
+                        <SelectItem value="restore_backup">恢复备份</SelectItem>
+                        <SelectItem value="import">导入</SelectItem>
+                        <SelectItem value="export">导出</SelectItem>
+                        <SelectItem value="schedule">定时发布</SelectItem>
+                        <SelectItem value="restore">恢复版本</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">实体类型</Label>
+                    <Select value={logFilterEntity} onValueChange={setLogFilterEntity}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="全部实体" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部实体</SelectItem>
+                        <SelectItem value="post">文章</SelectItem>
+                        <SelectItem value="comment">评论</SelectItem>
+                        <SelectItem value="tag">标签</SelectItem>
+                        <SelectItem value="category">分类</SelectItem>
+                        <SelectItem value="settings">设置</SelectItem>
+                        <SelectItem value="theme">主题</SelectItem>
+                        <SelectItem value="version">版本</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">开始日期</Label>
+                    <Input
+                      type="date"
+                      value={logFilterDateStart}
+                      onChange={(e) => setLogFilterDateStart(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">结束日期</Label>
+                    <Input
+                      type="date"
+                      value={logFilterDateEnd}
+                      onChange={(e) => setLogFilterDateEnd(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+                {(logFilterAction !== 'all' || logFilterEntity !== 'all' || logFilterDateStart || logFilterDateEnd) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="mt-3"
+                    onClick={() => {
+                      setLogFilterAction('all');
+                      setLogFilterEntity('all');
+                      setLogFilterDateStart('');
+                      setLogFilterDateEnd('');
+                    }}
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    清除筛选
+                  </Button>
+                )}
               </div>
 
               {logsLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : !adminLogs || adminLogs.length === 0 ? (
+              ) : filteredLogs.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>暂无操作日志</p>
+                  <p>暂无匹配的操作日志</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {adminLogs.map((log) => (
+                  {filteredLogs.map((log) => (
                     <details key={log.id} className="blog-card p-3 sm:p-4 group">
                       <summary className="flex items-start gap-3 cursor-pointer list-none">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -2542,6 +2747,40 @@ const Admin = () => {
                   rows={10}
                   className="font-mono text-sm"
                 />
+              </div>
+
+              {/* Tags selection */}
+              <div className="space-y-2">
+                <Label>关联标签</Label>
+                <div className="flex flex-wrap gap-2 p-3 border rounded-lg bg-secondary/20 min-h-[48px]">
+                  {tags && tags.length > 0 ? (
+                    tags.map((tag) => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTagIds(prev => 
+                            prev.includes(tag.id) 
+                              ? prev.filter(id => id !== tag.id) 
+                              : [...prev, tag.id]
+                          );
+                        }}
+                        className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                          selectedTagIds.includes(tag.id)
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-card text-muted-foreground border-border hover:border-primary hover:text-primary'
+                        }`}
+                      >
+                        {tag.name}
+                      </button>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">暂无标签，请先在标签管理中创建</span>
+                  )}
+                </div>
+                {selectedTagIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">已选择 {selectedTagIds.length} 个标签</p>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -3129,20 +3368,36 @@ const StatCard = forwardRef<
 ));
 StatCard.displayName = 'StatCard';
 
-// Comment Card Component with selection
+// Comment Card Component with selection and reply
 const CommentCard = ({ 
   comment, 
   selected,
   onSelect,
   onApprove, 
-  onDelete, 
+  onDelete,
+  onReply,
+  onDeleteReply,
+  isReplying,
+  replyContent,
+  onReplyContentChange,
+  onSubmitReply,
+  onCancelReply,
+  isReplyLoading,
   isApproved = false 
 }: { 
-  comment: Comment & { posts: { title: string; slug: string } };
+  comment: Comment & { posts: { title: string; slug: string }; admin_reply?: string | null; replied_at?: string | null };
   selected: boolean;
   onSelect: () => void;
   onApprove: () => void;
   onDelete: () => void;
+  onReply: () => void;
+  onDeleteReply: () => void;
+  isReplying: boolean;
+  replyContent: string;
+  onReplyContentChange: (value: string) => void;
+  onSubmitReply: () => void;
+  onCancelReply: () => void;
+  isReplyLoading: boolean;
   isApproved?: boolean;
 }) => (
   <div className="blog-card p-3 sm:p-4">
@@ -3168,21 +3423,88 @@ const CommentCard = ({
           <span>·</span>
           <span>{new Date(comment.created_at).toLocaleString('zh-CN')}</span>
         </div>
+
+        {/* Admin reply display */}
+        {comment.admin_reply && !isReplying && (
+          <div className="mt-3 p-3 bg-primary/5 border-l-2 border-primary rounded-r-lg">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <Reply className="w-3 h-3" />
+              <span>管理员回复</span>
+              {comment.replied_at && (
+                <>
+                  <span>·</span>
+                  <span>{new Date(comment.replied_at).toLocaleString('zh-CN')}</span>
+                </>
+              )}
+            </div>
+            <p className="text-sm text-foreground">{comment.admin_reply}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDeleteReply}
+              className="mt-2 h-6 text-xs text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              删除回复
+            </Button>
+          </div>
+        )}
+
+        {/* Reply input */}
+        {isReplying && (
+          <div className="mt-3 space-y-2">
+            <Textarea
+              value={replyContent}
+              onChange={(e) => onReplyContentChange(e.target.value)}
+              placeholder="输入回复内容..."
+              rows={3}
+              className="text-sm"
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={onSubmitReply}
+                disabled={isReplyLoading || !replyContent.trim()}
+              >
+                {isReplyLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
+                发送回复
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCancelReply}
+              >
+                取消
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="flex flex-col items-center gap-1 flex-shrink-0">
         <Button
           variant="outline"
           size="sm"
           onClick={onApprove}
           className={`h-8 w-8 p-0 ${isApproved ? "text-amber-600" : "text-green-600"}`}
+          title={isApproved ? "取消通过" : "审核通过"}
         >
           {isApproved ? <XCircle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
         </Button>
         <Button
           variant="outline"
           size="sm"
+          onClick={onReply}
+          className="h-8 w-8 p-0 text-primary"
+          title="回复"
+        >
+          <Reply className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onDelete}
           className="text-destructive hover:text-destructive h-8 w-8 p-0"
+          title="删除"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
