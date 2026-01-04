@@ -11,6 +11,7 @@ const HeroSection = () => {
   const badge = heroSettings?.badge || "欢迎来到我的博客";
   const backgroundImage = heroSettings?.backgroundImage;
   const backgroundType = heroSettings?.backgroundType || 'gradient';
+  const blur = heroSettings?.blur ?? 70;
 
   const typewriterEnabled = typewriterSettings?.enabled ?? true;
   const titleSpeed = typewriterSettings?.titleSpeed || 200;
@@ -19,7 +20,7 @@ const HeroSection = () => {
   const loopDelay = typewriterSettings?.loopDelay || 3000;
 
   return (
-    <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         {backgroundType === 'image' && backgroundImage ? (
@@ -29,7 +30,13 @@ const HeroSection = () => {
               alt="" 
               className="absolute inset-0 w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
+            <div 
+              className="absolute inset-0" 
+              style={{ 
+                backgroundColor: `hsl(var(--background) / ${blur / 100})`,
+                backdropFilter: blur > 0 ? `blur(${Math.round(blur / 10)}px)` : 'none'
+              }}
+            />
           </>
         ) : (
           <>

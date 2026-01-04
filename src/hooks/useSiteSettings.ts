@@ -7,6 +7,12 @@ export interface HeroSettings {
   badge: string;
   backgroundImage: string | null;
   backgroundType: 'gradient' | 'image';
+  blur: number;
+}
+
+export interface SiteSettings {
+  name: string;
+  textReplacements: Array<{ from: string; to: string }>;
 }
 
 export interface TypewriterSettings {
@@ -81,6 +87,40 @@ export const useUpdateTypewriterSettings = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['site-settings', 'typewriter'] });
+    },
+  });
+};
+
+export const useSiteSettings = () => {
+  return useQuery({
+    queryKey: ['site-settings', 'site'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'site')
+        .single();
+      
+      if (error) throw error;
+      return data.value as unknown as SiteSettings;
+    },
+  });
+};
+
+export const useUpdateSiteSettings = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (settings: SiteSettings) => {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ value: JSON.parse(JSON.stringify(settings)) })
+        .eq('key', 'site');
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['site-settings', 'site'] });
     },
   });
 };
