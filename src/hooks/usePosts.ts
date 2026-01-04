@@ -16,6 +16,7 @@ export interface Post {
   created_at: string;
   updated_at: string;
   view_count: number;
+  sort_order?: number;
 }
 
 export const usePosts = (published: boolean = true) => {
@@ -47,7 +48,9 @@ export const usePosts = (published: boolean = true) => {
         query = query.eq('published', true);
       }
       
-      const { data, error } = await query.order('published_at', { ascending: false });
+      const { data, error } = await query
+        .order('sort_order', { ascending: false })
+        .order('published_at', { ascending: false });
       
       if (error) throw error;
       return data as Post[];
@@ -223,6 +226,25 @@ export const useBulkDeletePosts = () => {
       if (!ids.length) return;
       const { error } = await supabase.from('posts').delete().in('id', ids);
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+};
+
+export const useUpdatePostOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orders: { id: string; sort_order: number }[]) => {
+      for (const { id, sort_order } of orders) {
+        const { error } = await supabase
+          .from('posts')
+          .update({ sort_order })
+          .eq('id', id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
