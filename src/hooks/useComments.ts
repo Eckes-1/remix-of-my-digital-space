@@ -25,6 +25,8 @@ export const useComments = (postId: string) => {
       return data as Comment[];
     },
     enabled: !!postId,
+    refetchInterval: 5000,
+    staleTime: 2000,
   });
 };
 
@@ -41,6 +43,8 @@ export const useAllComments = () => {
       if (error) throw error;
       return data as (Comment & { posts: { title: string; slug: string } })[];
     },
+    refetchInterval: 5000,
+    staleTime: 2000,
   });
 };
 

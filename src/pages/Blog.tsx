@@ -1,21 +1,47 @@
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { Calendar, Filter, X } from 'lucide-react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BlogCard from "@/components/BlogCard";
 import SearchBar from "@/components/SearchBar";
-import { usePosts, useSearchPosts } from "@/hooks/usePosts";
+import { usePosts } from "@/hooks/usePosts";
 import { useTags } from "@/hooks/useTags";
+import { useCategories } from "@/hooks/useCategories";
+import { useAdvancedSearch, SearchFilters } from "@/hooks/useAdvancedSearch";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 
 const Blog = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [showFilters, setShowFilters] = useState(false);
   
-  const { data: posts, isLoading } = usePosts();
-  const { data: searchResults } = useSearchPosts(searchQuery);
+  const { data: posts, isLoading: postsLoading } = usePosts();
   const { data: tags } = useTags();
+  const { data: categories } = useCategories();
+  
+  const filters: SearchFilters = {
+    query: searchQuery || undefined,
+    category: selectedCategory || undefined,
+    tagId: selectedTag || undefined,
+    dateFrom,
+    dateTo,
+  };
+  
+  const hasFilters = searchQuery || selectedCategory || selectedTag || dateFrom || dateTo;
+  
+  const { data: filteredPosts, isLoading: searchLoading } = useAdvancedSearch(
+    hasFilters ? filters : { query: '' }
+  );
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -26,15 +52,19 @@ const Blog = () => {
     }
   };
 
-  const categories = posts 
-    ? ["全部", ...new Set(posts.map((post) => post.category))]
-    : ["全部"];
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory(null);
+    setSelectedTag(null);
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setSearchParams({});
+  };
 
-  let displayPosts = searchQuery ? searchResults : posts;
-  
-  if (selectedCategory && selectedCategory !== "全部" && displayPosts) {
-    displayPosts = displayPosts.filter(post => post.category === selectedCategory);
-  }
+  const displayPosts = hasFilters ? filteredPosts : posts;
+  const isLoading = hasFilters ? searchLoading : postsLoading;
+
+  const allCategories = categories ? ["全部", ...categories.map(c => c.name)] : ["全部"];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -49,13 +79,98 @@ const Blog = () => {
             <p className="text-muted-foreground max-w-lg mx-auto mb-8">
               浏览我的所有文章，涵盖技术、生活、阅读等多个主题
             </p>
-            <div className="max-w-md mx-auto">
-              <SearchBar onSearch={handleSearch} placeholder="搜索标题或内容..." />
+            <div className="max-w-md mx-auto flex gap-2">
+              <div className="flex-1">
+                <SearchBar onSearch={handleSearch} placeholder="搜索标题或内容..." />
+              </div>
+              <Button
+                variant={showFilters ? "default" : "outline"}
+                size="icon"
+                onClick={() => setShowFilters(!showFilters)}
+                className="shrink-0"
+              >
+                <Filter className="w-4 h-4" />
+              </Button>
             </div>
           </div>
           
+          {/* Advanced Filters */}
+          {showFilters && (
+            <div className="mb-8 p-4 bg-card rounded-xl border border-border animate-fade-in">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-foreground">高级筛选</h3>
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    <X className="w-4 h-4 mr-1" />
+                    清除筛选
+                  </Button>
+                )}
+              </div>
+              
+              <div className="grid md:grid-cols-3 gap-4">
+                {/* Tag Filter */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">标签</label>
+                  <select
+                    value={selectedTag || ''}
+                    onChange={(e) => setSelectedTag(e.target.value || null)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground"
+                  >
+                    <option value="">全部标签</option>
+                    {tags?.map((tag) => (
+                      <option key={tag.id} value={tag.id}>{tag.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Date From */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">开始日期</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {dateFrom ? format(dateFrom, 'yyyy年M月d日', { locale: zhCN }) : '选择日期'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={dateFrom}
+                        onSelect={setDateFrom}
+                        locale={zhCN}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                {/* Date To */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">结束日期</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {dateTo ? format(dateTo, 'yyyy年M月d日', { locale: zhCN }) : '选择日期'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={dateTo}
+                        onSelect={setDateTo}
+                        locale={zhCN}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Category Filter */}
           <div className="flex items-center justify-center gap-3 mb-12 flex-wrap">
-            {categories.map((category) => (
+            {allCategories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category === "全部" ? null : category)}
@@ -74,7 +189,7 @@ const Blog = () => {
             <div className="text-center py-12 text-muted-foreground">加载中...</div>
           ) : displayPosts?.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              {searchQuery ? `没有找到与 "${searchQuery}" 相关的文章` : "暂无文章"}
+              {hasFilters ? '没有找到符合条件的文章' : "暂无文章"}
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
