@@ -1,4 +1,5 @@
 import { Github, Twitter, Mail } from "lucide-react";
+import RssButton from "./RssButton";
 
 const Footer = () => {
   const socialLinks = [
@@ -27,7 +28,13 @@ const Footer = () => {
                 <social.icon className="w-5 h-5" />
               </a>
             ))}
+            <RssButton variant="icon" />
           </div>
+        </div>
+        
+        {/* RSS Subscribe Link */}
+        <div className="mt-6 flex justify-center">
+          <RssButton variant="link" />
         </div>
         
         <div className="mt-8 pt-8 border-t border-border text-center">

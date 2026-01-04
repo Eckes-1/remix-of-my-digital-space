@@ -1,9 +1,9 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface DraftData {
+export interface DraftData {
   title: string;
   slug: string;
   excerpt: string;
@@ -13,12 +13,14 @@ interface DraftData {
   coverImage: string | null;
 }
 
-const AUTOSAVE_DELAY = 30000; // 30 seconds
+const AUTOSAVE_DELAY = 5000; // 5 seconds - more frequent saves
 const STORAGE_KEY = 'blog_draft_autosave';
 
 export const useAutoSave = (postId: string | null, data: DraftData) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef<string>('');
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Save to localStorage for new posts
   const saveToLocalStorage = useCallback((data: DraftData) => {
@@ -26,6 +28,8 @@ export const useAutoSave = (postId: string | null, data: DraftData) => {
     if (dataString !== lastSavedRef.current) {
       localStorage.setItem(STORAGE_KEY, dataString);
       lastSavedRef.current = dataString;
+      setLastSaveTime(new Date());
+      setHasUnsavedChanges(false);
     }
   }, []);
 
@@ -40,6 +44,14 @@ export const useAutoSave = (postId: string | null, data: DraftData) => {
       if (error) throw error;
     },
   });
+
+  // Track unsaved changes
+  useEffect(() => {
+    const dataString = JSON.stringify(data);
+    if (dataString !== lastSavedRef.current && (data.title || data.content)) {
+      setHasUnsavedChanges(true);
+    }
+  }, [data]);
 
   // Auto-save effect
   useEffect(() => {
@@ -64,6 +76,8 @@ export const useAutoSave = (postId: string | null, data: DraftData) => {
             onSuccess: () => {
               toast.success('草稿已自动保存', { duration: 2000 });
               lastSavedRef.current = dataString;
+              setLastSaveTime(new Date());
+              setHasUnsavedChanges(false);
             },
           }
         );
@@ -81,6 +95,19 @@ export const useAutoSave = (postId: string | null, data: DraftData) => {
     };
   }, [data, postId, saveToLocalStorage, saveToDatabaseMutation]);
 
+  // Warn before leaving if unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   // Manual save function
   const saveNow = useCallback(() => {
     if (timeoutRef.current) {
@@ -96,6 +123,8 @@ export const useAutoSave = (postId: string | null, data: DraftData) => {
           onSuccess: () => {
             toast.success('草稿已保存');
             lastSavedRef.current = dataString;
+            setLastSaveTime(new Date());
+            setHasUnsavedChanges(false);
           },
         }
       );
@@ -122,6 +151,7 @@ export const useAutoSave = (postId: string | null, data: DraftData) => {
   const clearDraft = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     lastSavedRef.current = '';
+    setHasUnsavedChanges(false);
   }, []);
 
   return {
@@ -129,5 +159,7 @@ export const useAutoSave = (postId: string | null, data: DraftData) => {
     loadDraft,
     clearDraft,
     isSaving: saveToDatabaseMutation.isPending,
+    lastSaveTime,
+    hasUnsavedChanges,
   };
 };

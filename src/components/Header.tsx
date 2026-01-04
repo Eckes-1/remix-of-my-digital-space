@@ -1,11 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { Settings, Menu, X, Home, BookOpen, Archive, User } from "lucide-react";
+import { Settings, Menu, X, Home, BookOpen, Archive, User, Rss } from "lucide-react";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 import { cn } from "@/lib/utils";
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 const Header = () => {
   const location = useLocation();
   const { user, isAdmin } = useAuth();
@@ -66,6 +71,26 @@ const Header = () => {
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
+            {/* RSS Button */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rss-feed`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hidden md:flex w-9 h-9 items-center justify-center rounded-full text-muted-foreground hover:text-primary hover:bg-secondary/80 transition-colors"
+                    aria-label="RSS 订阅"
+                  >
+                    <Rss className="w-4 h-4" />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>订阅 RSS</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             {isAdmin && (
               <Link
                 to="/admin"
