@@ -36,16 +36,21 @@ const BlogPost = () => {
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedScrollPosition, setSavedScrollPosition] = useState<number | null>(null);
 
+  // Check for saved reading progress on mount
   useEffect(() => {
-    if (slug && post) {
-      incrementView.mutate(slug);
-      
-      // Check for saved reading progress
+    if (slug) {
       const savedPos = getSavedProgress(slug);
       if (savedPos && savedPos > 300) {
         setSavedScrollPosition(savedPos);
         setShowResumePrompt(true);
       }
+    }
+  }, [slug, getSavedProgress]);
+
+  // Increment view count when post loads
+  useEffect(() => {
+    if (slug && post) {
+      incrementView.mutate(slug);
     }
   }, [slug, post?.id]);
 
