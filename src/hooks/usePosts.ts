@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 export interface Post {
   id: string;
@@ -18,6 +19,25 @@ export interface Post {
 }
 
 export const usePosts = (published: boolean = true) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('posts-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['posts'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['posts', published],
     queryFn: async () => {
@@ -32,12 +52,32 @@ export const usePosts = (published: boolean = true) => {
       if (error) throw error;
       return data as Post[];
     },
-    refetchInterval: 5000,
-    staleTime: 2000,
+    staleTime: 30000,
   });
 };
 
 export const usePost = (slug: string) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!slug) return;
+    
+    const channel = supabase
+      .channel(`post-${slug}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts', filter: `slug=eq.${slug}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['post', slug] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [slug, queryClient]);
+
   return useQuery({
     queryKey: ['post', slug],
     queryFn: async () => {

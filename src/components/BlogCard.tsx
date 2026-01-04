@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { useTextReplacer } from './TextReplacer';
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
@@ -28,11 +27,7 @@ const categoryCovers: Record<string, string> = {
 
 const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }: BlogCardProps) => {
   const cover = coverImage || categoryCovers[category] || coverProgramming;
-  const replaceText = useTextReplacer();
-  
   const formattedDate = date ? format(new Date(date), 'yyyy年M月d日', { locale: zhCN }) : '';
-  const replacedTitle = replaceText(title);
-  const replacedExcerpt = replaceText(excerpt);
 
   return (
     <Link to={`/blog/${slug}`} className="block group">
@@ -40,7 +35,7 @@ const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }
         <div className="relative overflow-hidden rounded-lg mb-4 aspect-video">
           <img
             src={cover}
-            alt={replacedTitle}
+            alt={title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-foreground/5 group-hover:bg-transparent transition-colors" />
@@ -52,11 +47,11 @@ const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }
           </span>
           
           <h3 className="font-serif text-xl font-semibold text-foreground group-hover:text-primary transition-colors mb-2 line-clamp-2">
-            {replacedTitle}
+            {title}
           </h3>
           
           <p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3 flex-1">
-            {replacedExcerpt}
+            {excerpt}
           </p>
           
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t border-border">

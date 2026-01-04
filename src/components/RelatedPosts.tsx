@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { usePosts } from "@/hooks/usePosts";
 import { ArrowRight } from "lucide-react";
-import { useTextReplacer } from "@/components/TextReplacer";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
@@ -22,7 +21,6 @@ interface RelatedPostsProps {
 
 const RelatedPosts = ({ currentPostId, category, limit = 3 }: RelatedPostsProps) => {
   const { data: allPosts } = usePosts();
-  const replaceText = useTextReplacer();
 
   // Find related posts (same category, excluding current)
   const relatedPosts = allPosts
@@ -45,8 +43,6 @@ const RelatedPosts = ({ currentPostId, category, limit = 3 }: RelatedPostsProps)
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {relatedPosts.map((post) => {
           const cover = post.cover_image || categoryCovers[post.category] || coverProgramming;
-          const title = replaceText(post.title);
-          const categoryLabel = replaceText(post.category);
 
           return (
             <Link
@@ -57,16 +53,16 @@ const RelatedPosts = ({ currentPostId, category, limit = 3 }: RelatedPostsProps)
               <div className="aspect-video overflow-hidden">
                 <img
                   src={cover}
-                  alt={title}
+                  alt={post.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
               <div className="p-4">
                 <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-2">
-                  {categoryLabel}
+                  {post.category}
                 </span>
                 <h4 className="font-serif font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                  {title}
+                  {post.title}
                 </h4>
                 <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground group-hover:text-primary transition-colors">
                   阅读更多

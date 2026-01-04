@@ -11,7 +11,6 @@ import ShareButton from "@/components/ShareButton";
 import TableOfContents from "@/components/TableOfContents";
 import RelatedPosts from "@/components/RelatedPosts";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
-import { useTextReplacer } from "@/components/TextReplacer";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
@@ -28,7 +27,6 @@ const BlogPost = () => {
   const { slug } = useParams();
   const { data: post, isLoading, error } = usePost(slug || '');
   const incrementView = useIncrementViewCount();
-  const replaceText = useTextReplacer();
 
   useEffect(() => {
     if (slug && post) {
@@ -36,7 +34,7 @@ const BlogPost = () => {
     }
   }, [slug, post?.id]);
 
-  // Parse content with heading IDs and text replacement
+  // Parse content with heading IDs
   const parsedContent = useMemo(() => {
     if (!post?.content) return [];
     
@@ -45,23 +43,15 @@ const BlogPost = () => {
     return paragraphs.map((paragraph, index) => {
       if (paragraph.startsWith("## ")) {
         const id = `heading-${index}`;
-        return { type: 'heading', content: replaceText(paragraph.replace("## ", "")), id };
+        return { type: 'heading', content: paragraph.replace("## ", ""), id };
       }
       if (paragraph.startsWith("- ")) {
         const items = paragraph.split("\n").filter(Boolean);
-        return { type: 'list', items: items.map(item => replaceText(item.replace("- ", ""))), id: null };
+        return { type: 'list', items: items.map(item => item.replace("- ", "")), id: null };
       }
-      return { type: 'paragraph', content: replaceText(paragraph), id: null };
+      return { type: 'paragraph', content: paragraph, id: null };
     });
-  }, [post?.content, replaceText]);
-
-  const replacedTitle = useMemo(() => {
-    return post?.title ? replaceText(post.title) : '';
-  }, [post?.title, replaceText]);
-
-  const replacedExcerpt = useMemo(() => {
-    return post?.excerpt ? replaceText(post.excerpt) : '';
-  }, [post?.excerpt, replaceText]);
+  }, [post?.content]);
 
   if (isLoading) {
     return (
@@ -108,7 +98,7 @@ const BlogPost = () => {
         <div className="relative h-64 md:h-96 mb-8 overflow-hidden">
           <img
             src={cover}
-            alt={replacedTitle}
+            alt={post.title}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
@@ -128,11 +118,11 @@ const BlogPost = () => {
               
               <header className="mb-12">
                 <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mb-4">
-                  {replaceText(post.category)}
+                  {post.category}
                 </span>
                 
                 <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
-                  {replacedTitle}
+                  {post.title}
                 </h1>
                 
                 <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -184,7 +174,7 @@ const BlogPost = () => {
               {/* Like & Share Buttons */}
               <div className="flex items-center justify-center gap-4 mt-10 mb-8">
                 <LikeButton postId={post.id} />
-                <ShareButton title={replacedTitle} />
+                <ShareButton title={post.title} />
               </div>
 
               {/* Related Posts */}
@@ -196,7 +186,7 @@ const BlogPost = () => {
 
             {/* Sidebar with TOC */}
             <aside className="hidden lg:block">
-              <TableOfContents content={replaceText(post.content)} />
+              <TableOfContents content={post.content} />
             </aside>
           </div>
         </div>

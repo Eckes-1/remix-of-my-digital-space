@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Eye, TrendingUp } from 'lucide-react';
 import { usePopularPosts } from '@/hooks/usePosts';
-import { useTextReplacer } from '@/components/TextReplacer';
 
 const PopularPosts = () => {
   const { data: posts, isLoading } = usePopularPosts(5);
-  const replaceText = useTextReplacer();
 
   if (isLoading) {
     return (
@@ -41,7 +39,7 @@ const PopularPosts = () => {
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                  {replaceText(post.title)}
+                  {post.title}
                 </p>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                   <Eye className="w-3 h-3" />
