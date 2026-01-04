@@ -11,10 +11,12 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useThemeStyles, THEME_STYLES } from '@/hooks/useThemeStyles';
 import { usePostVersions, useCreatePostVersion, useRestorePostVersion, PostVersion } from '@/hooks/usePostVersions';
 import { useSchedulePost, useCancelSchedule, formatDateTimeLocal, isScheduled } from '@/hooks/useScheduledPublish';
+import { useAdminLogs, useActionLogger, getActionLabel, getEntityLabel, AdminLog } from '@/hooks/useAdminLogs';
 import { supabase } from '@/integrations/supabase/client';
 import { exportToJSON, exportToCSV } from '@/utils/exportData';
 import { createBackup, downloadBackup, restoreBackup, parseBackupFile } from '@/utils/backupRestore';
 import { parseImportFile, ImportPost } from '@/utils/importPosts';
+import ArticlePreview from '@/components/ArticlePreview';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,7 +59,10 @@ import {
   RotateCcw,
   Clock,
   History,
-  RotateCw
+  RotateCw,
+  Rss,
+  ClipboardList,
+  BookOpen
 } from 'lucide-react';
 import {
   Dialog,
@@ -199,7 +204,14 @@ const Admin = () => {
   const importInputRef = useRef<HTMLInputElement>(null);
 
   // Theme styles
-  const { currentTheme, setTheme, themes } = useThemeStyles();
+  const { currentTheme, setTheme, resetToDefault, defaultTheme, themes } = useThemeStyles();
+
+  // Admin logs
+  const { data: adminLogs, isLoading: logsLoading } = useAdminLogs(100);
+  const { log: logAction } = useActionLogger();
+
+  // Preview state
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
 
   // Scheduled publish state
   const [scheduledAt, setScheduledAt] = useState<string>('');
@@ -1122,7 +1134,7 @@ const Admin = () => {
           <Tabs defaultValue="dashboard" className="space-y-4 sm:space-y-6">
             {/* Scrollable TabsList for mobile */}
             <ScrollArea className="w-full whitespace-nowrap">
-              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-6 sm:w-full sm:max-w-3xl">
+              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-7 sm:w-full sm:max-w-4xl">
                 <TabsTrigger value="dashboard" className="flex items-center gap-2 px-3 sm:px-4">
                   <LayoutDashboard className="w-4 h-4" />
                   <span className="text-xs sm:text-sm">仪表盘</span>
@@ -1147,6 +1159,10 @@ const Admin = () => {
                 <TabsTrigger value="categories" className="flex items-center gap-2 px-3 sm:px-4">
                   <FolderOpen className="w-4 h-4" />
                   <span className="text-xs sm:text-sm">分类</span>
+                </TabsTrigger>
+                <TabsTrigger value="logs" className="flex items-center gap-2 px-3 sm:px-4">
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">日志</span>
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="flex items-center gap-2 px-3 sm:px-4">
                   <Settings className="w-4 h-4" />
@@ -1990,6 +2006,20 @@ const Admin = () => {
                       </button>
                     ))}
                   </div>
+                  
+                  {/* Reset to default */}
+                  {currentTheme !== defaultTheme && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        resetToDefault();
+                        toast.success('已恢复默认风格');
+                      }}
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      恢复默认风格
+                    </Button>
+                  )}
                 </div>
 
                 {/* Backup & Restore */}
@@ -2056,7 +2086,97 @@ const Admin = () => {
                     />
                   </div>
                 </div>
+
+                {/* RSS Feed */}
+                <div className="blog-card space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Rss className="w-5 h-5" />
+                    RSS 订阅
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    提供 RSS feed 让读者可以订阅您的博客更新。
+                  </p>
+                  
+                  <div className="p-3 bg-secondary/50 rounded-lg">
+                    <code className="text-sm break-all">
+                      {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rss-feed`}
+                    </code>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      window.open(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rss-feed`, '_blank');
+                    }}
+                  >
+                    <Rss className="w-4 h-4 mr-2" />
+                    查看 RSS Feed
+                  </Button>
+                </div>
               </div>
+            </TabsContent>
+
+            {/* Logs Tab */}
+            <TabsContent value="logs" className="space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
+                  操作日志
+                </h2>
+              </div>
+
+              {logsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : !adminLogs || adminLogs.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>暂无操作日志</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {adminLogs.map((log) => (
+                    <div key={log.id} className="blog-card p-3 sm:p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          log.action === 'delete' ? 'bg-destructive/10 text-destructive' :
+                          log.action === 'create' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          log.action === 'publish' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                          'bg-secondary text-muted-foreground'
+                        }`}>
+                          {log.action === 'delete' ? <Trash2 className="w-4 h-4" /> :
+                           log.action === 'create' ? <Plus className="w-4 h-4" /> :
+                           log.action === 'publish' ? <Eye className="w-4 h-4" /> :
+                           log.action === 'update' ? <Edit className="w-4 h-4" /> :
+                           <FileText className="w-4 h-4" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <span className="font-medium text-foreground">
+                              {getActionLabel(log.action)}
+                            </span>
+                            <span className="text-muted-foreground">·</span>
+                            <span className="text-muted-foreground">
+                              {getEntityLabel(log.entity_type)}
+                            </span>
+                            {log.entity_name && (
+                              <>
+                                <span className="text-muted-foreground">·</span>
+                                <span className="text-primary truncate max-w-[200px]">
+                                  {log.entity_name}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(log.created_at).toLocaleString('zh-CN')}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         )}
@@ -2199,6 +2319,16 @@ const Admin = () => {
                 <Button type="button" variant="ghost" onClick={() => setIsEditorOpen(false)} className="w-full sm:w-auto">
                   取消
                 </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setPreviewDialogOpen(true)}
+                  disabled={!title && !content}
+                  className="w-full sm:w-auto"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  预览
+                </Button>
                 <Button type="submit" disabled={createPost.isPending || updatePost.isPending} className="w-full sm:w-auto">
                   <Save className="w-4 h-4 mr-2" />
                   {createPost.isPending || updatePost.isPending ? "保存中..." : "保存"}
@@ -2206,6 +2336,34 @@ const Admin = () => {
               </div>
             </form>
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Article Preview Dialog */}
+      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-4xl h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="flex-shrink-0 p-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5" />
+              文章预览
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1">
+            <ArticlePreview
+              title={title}
+              excerpt={excerpt}
+              content={content}
+              category={category}
+              readTime={readTime}
+              coverImage={coverImage}
+              published={published}
+            />
+          </ScrollArea>
+          <div className="flex-shrink-0 flex justify-end p-4 border-t">
+            <Button variant="ghost" onClick={() => setPreviewDialogOpen(false)}>
+              关闭
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
