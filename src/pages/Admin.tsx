@@ -237,7 +237,7 @@ const Admin = () => {
     coverImage,
   }), [title, slug, excerpt, content, category, readTime, coverImage]);
   
-  const { loadDraft, clearDraft } = useAutoSave(editingPost?.id || null, draftData);
+  const { loadDraft, clearDraft, saveNow, isSaving, lastSaveTime, hasUnsavedChanges } = useAutoSave(editingPost?.id || null, draftData);
 
   // Filtered posts
   const filteredPosts = useMemo(() => {
@@ -441,9 +441,20 @@ const Admin = () => {
           published_at: published ? new Date().toISOString() : null,
           cover_image: coverImage,
         });
+        
+        // Log update action with details
+        logAction('update', 'post', title, editingPost.id, {
+          changes: {
+            title: title !== editingPost.title ? { from: editingPost.title, to: title } : undefined,
+            category: category !== editingPost.category ? { from: editingPost.category, to: category } : undefined,
+            published: published !== editingPost.published ? { from: editingPost.published, to: published } : undefined,
+          },
+          timestamp: new Date().toISOString(),
+        });
+        
         toast.success("文章已更新（历史版本已保存）");
       } else {
-        await createPost.mutateAsync({
+        const result = await createPost.mutateAsync({
           title,
           slug,
           excerpt,
@@ -455,9 +466,18 @@ const Admin = () => {
           cover_image: coverImage,
           view_count: 0,
         });
+        
+        // Log create action
+        logAction('create', 'post', title, undefined, {
+          category,
+          published,
+          timestamp: new Date().toISOString(),
+        });
+        
         toast.success("文章已创建");
       }
       
+      clearDraft();
       setIsEditorOpen(false);
       setEditingPost(null);
       resetForm();
@@ -485,6 +505,11 @@ const Admin = () => {
 
     try {
       await schedulePost.mutateAsync({ postId, scheduledAt: scheduleDate.toISOString() });
+      const postTitle = posts?.find(p => p.id === postId)?.title || '未知文章';
+      logAction('schedule', 'post', postTitle, postId, {
+        scheduledAt: scheduleDate.toISOString(),
+        timestamp: new Date().toISOString(),
+      });
       toast.success(`文章已设定在 ${scheduleDate.toLocaleString('zh-CN')} 自动发布`);
       setScheduledAt('');
     } catch (error) {
@@ -495,6 +520,11 @@ const Admin = () => {
   const handleCancelSchedule = async (postId: string) => {
     try {
       await cancelSchedule.mutateAsync(postId);
+      const postTitle = posts?.find(p => p.id === postId)?.title || '未知文章';
+      logAction('update', 'post', postTitle, postId, {
+        action: '取消定时发布',
+        timestamp: new Date().toISOString(),
+      });
       toast.success('已取消定时发布');
     } catch (error) {
       toast.error('取消定时发布失败');
@@ -507,6 +537,10 @@ const Admin = () => {
     
     try {
       await restoreVersion.mutateAsync({ postId: selectedPostForVersions.id, version });
+      logAction('restore', 'version', selectedPostForVersions.title, selectedPostForVersions.id, {
+        restoredToVersion: version.version_number,
+        timestamp: new Date().toISOString(),
+      });
       toast.success(`已恢复到版本 ${version.version_number}`);
       setVersionDialogOpen(false);
       setSelectedPostForVersions(null);
@@ -518,8 +552,17 @@ const Admin = () => {
   const handleDelete = async () => {
     if (!deletePostId) return;
     
+    const postToDelete = posts?.find(p => p.id === deletePostId);
     try {
       await deletePost.mutateAsync(deletePostId);
+      logAction('delete', 'post', postToDelete?.title || '未知文章', deletePostId, {
+        deletedPost: {
+          title: postToDelete?.title,
+          category: postToDelete?.category,
+          published: postToDelete?.published,
+        },
+        timestamp: new Date().toISOString(),
+      });
       toast.success("文章已删除");
       setDeletePostId(null);
     } catch (error) {
@@ -558,10 +601,16 @@ const Admin = () => {
     setBulkOperating(true);
 
     const now = new Date().toISOString();
+    const selectedTitles = posts?.filter(p => selectedPostIds.includes(p.id)).map(p => p.title) || [];
     try {
       await bulkUpdatePosts.mutateAsync({
         ids: selectedPostIds,
         updates: { published: true, published_at: now },
+      });
+      logAction('publish', 'post', `批量发布 ${selectedPostIds.length} 篇文章`, undefined, {
+        postIds: selectedPostIds,
+        postTitles: selectedTitles,
+        timestamp: new Date().toISOString(),
       });
       toast.success(`已批量发布 ${selectedPostIds.length} 篇文章`);
       setSelectedPostIds([]);
@@ -575,10 +624,16 @@ const Admin = () => {
   const handleBulkUnpublish = async () => {
     if (!selectedPostIds.length) return;
     setBulkOperating(true);
+    const selectedTitles = posts?.filter(p => selectedPostIds.includes(p.id)).map(p => p.title) || [];
     try {
       await bulkUpdatePosts.mutateAsync({
         ids: selectedPostIds,
         updates: { published: false, published_at: null },
+      });
+      logAction('unpublish', 'post', `批量取消发布 ${selectedPostIds.length} 篇文章`, undefined, {
+        postIds: selectedPostIds,
+        postTitles: selectedTitles,
+        timestamp: new Date().toISOString(),
       });
       toast.success(`已将 ${selectedPostIds.length} 篇文章转为草稿`);
       setSelectedPostIds([]);
@@ -592,8 +647,14 @@ const Admin = () => {
   const handleBulkDelete = async () => {
     if (!selectedPostIds.length) return;
     setBulkOperating(true);
+    const selectedTitles = posts?.filter(p => selectedPostIds.includes(p.id)).map(p => p.title) || [];
     try {
       await bulkDeletePosts.mutateAsync({ ids: selectedPostIds });
+      logAction('delete', 'post', `批量删除 ${selectedPostIds.length} 篇文章`, undefined, {
+        postIds: selectedPostIds,
+        postTitles: selectedTitles,
+        timestamp: new Date().toISOString(),
+      });
       toast.success(`已删除 ${selectedPostIds.length} 篇文章`);
       setSelectedPostIds([]);
       setBulkDeleteOpen(false);
@@ -618,8 +679,15 @@ const Admin = () => {
       return;
     }
 
+    const selectedTitles = posts?.filter(p => selectedPostIds.includes(p.id)).map(p => p.title) || [];
     try {
       await bulkUpdatePosts.mutateAsync({ ids: selectedPostIds, updates });
+      logAction('update', 'post', `批量修改 ${selectedPostIds.length} 篇文章`, undefined, {
+        postIds: selectedPostIds,
+        postTitles: selectedTitles,
+        updates,
+        timestamp: new Date().toISOString(),
+      });
       toast.success(`已批量修改 ${selectedPostIds.length} 篇文章`);
       setSelectedPostIds([]);
       setBulkEditOpen(false);
@@ -670,8 +738,14 @@ const Admin = () => {
 
   // Comment handlers
   const handleApproveComment = async (id: string, approved: boolean) => {
+    const comment = comments?.find(c => c.id === id);
     try {
       await approveComment.mutateAsync({ id, approved });
+      logAction(approved ? 'approve' : 'reject', 'comment', comment?.author_name || '未知评论者', id, {
+        action: approved ? '审核通过' : '取消通过',
+        postTitle: comment?.posts.title,
+        timestamp: new Date().toISOString(),
+      });
       toast.success(approved ? "评论已通过" : "评论已取消通过");
     } catch (error) {
       toast.error("操作失败");
@@ -680,8 +754,14 @@ const Admin = () => {
 
   const handleDeleteComment = async () => {
     if (!deleteCommentId) return;
+    const comment = comments?.find(c => c.id === deleteCommentId);
     try {
       await deleteComment.mutateAsync(deleteCommentId);
+      logAction('delete', 'comment', comment?.author_name || '未知评论者', deleteCommentId, {
+        content: comment?.content?.substring(0, 100),
+        postTitle: comment?.posts.title,
+        timestamp: new Date().toISOString(),
+      });
       toast.success("评论已删除");
       setDeleteCommentId(null);
     } catch (error) {
@@ -711,6 +791,10 @@ const Admin = () => {
     setBulkOperating(true);
     try {
       await bulkApproveComments.mutateAsync({ ids: selectedCommentIds, approved });
+      logAction(approved ? 'approve' : 'reject', 'comment', `批量${approved ? '通过' : '取消通过'} ${selectedCommentIds.length} 条评论`, undefined, {
+        commentIds: selectedCommentIds,
+        timestamp: new Date().toISOString(),
+      });
       toast.success(`已${approved ? '通过' : '取消通过'} ${selectedCommentIds.length} 条评论`);
       setSelectedCommentIds([]);
     } catch (error) {
@@ -725,6 +809,10 @@ const Admin = () => {
     setBulkOperating(true);
     try {
       await bulkDeleteComments.mutateAsync(selectedCommentIds);
+      logAction('delete', 'comment', `批量删除 ${selectedCommentIds.length} 条评论`, undefined, {
+        commentIds: selectedCommentIds,
+        timestamp: new Date().toISOString(),
+      });
       toast.success(`已删除 ${selectedCommentIds.length} 条评论`);
       setSelectedCommentIds([]);
       setBulkDeleteCommentsOpen(false);
@@ -760,6 +848,11 @@ const Admin = () => {
     } else {
       exportToCSV(data, `posts-${new Date().toISOString().slice(0, 10)}`);
     }
+    logAction('export', 'post', `导出 ${posts.length} 篇文章`, undefined, {
+      format,
+      count: posts.length,
+      timestamp: new Date().toISOString(),
+    });
     toast.success('导出成功');
   };
 
@@ -783,6 +876,11 @@ const Admin = () => {
     } else {
       exportToCSV(data, `comments-${new Date().toISOString().slice(0, 10)}`);
     }
+    logAction('export', 'comment', `导出 ${comments.length} 条评论`, undefined, {
+      format,
+      count: comments.length,
+      timestamp: new Date().toISOString(),
+    });
     toast.success('导出成功');
   };
 
@@ -802,6 +900,11 @@ const Admin = () => {
     } else {
       exportToCSV(data, `tags-${new Date().toISOString().slice(0, 10)}`);
     }
+    logAction('export', 'tag', `导出 ${tags.length} 个标签`, undefined, {
+      format,
+      count: tags.length,
+      timestamp: new Date().toISOString(),
+    });
     toast.success('导出成功');
   };
 
@@ -822,6 +925,11 @@ const Admin = () => {
     } else {
       exportToCSV(data, `categories-${new Date().toISOString().slice(0, 10)}`);
     }
+    logAction('export', 'category', `导出 ${categories.length} 个分类`, undefined, {
+      format,
+      count: categories.length,
+      timestamp: new Date().toISOString(),
+    });
     toast.success('导出成功');
   };
 
@@ -843,9 +951,20 @@ const Admin = () => {
     try {
       if (editingTag) {
         await updateTag.mutateAsync({ id: editingTag.id, name: tagName, slug: tagSlug });
+        logAction('update', 'tag', tagName, editingTag.id, {
+          changes: {
+            name: tagName !== editingTag.name ? { from: editingTag.name, to: tagName } : undefined,
+            slug: tagSlug !== editingTag.slug ? { from: editingTag.slug, to: tagSlug } : undefined,
+          },
+          timestamp: new Date().toISOString(),
+        });
         toast.success("标签已更新");
       } else {
         await createTag.mutateAsync({ name: tagName, slug: tagSlug });
+        logAction('create', 'tag', tagName, undefined, {
+          slug: tagSlug,
+          timestamp: new Date().toISOString(),
+        });
         toast.success("标签已创建");
       }
       setIsTagDialogOpen(false);
@@ -863,8 +982,12 @@ const Admin = () => {
 
   const handleDeleteTag = async () => {
     if (!deleteTagId) return;
+    const tagToDelete = tags?.find(t => t.id === deleteTagId);
     try {
       await deleteTagMutation.mutateAsync(deleteTagId);
+      logAction('delete', 'tag', tagToDelete?.name || '未知标签', deleteTagId, {
+        timestamp: new Date().toISOString(),
+      });
       toast.success("标签已删除");
       setDeleteTagId(null);
     } catch (error) {
@@ -882,6 +1005,11 @@ const Admin = () => {
         backgroundImage: heroBackgroundImage,
         backgroundType: heroBackgroundType,
         blur: heroBlur,
+      });
+      logAction('update', 'settings', 'Hero区域设置', undefined, {
+        title: heroTitle,
+        backgroundType: heroBackgroundType,
+        timestamp: new Date().toISOString(),
       });
       toast.success("Hero设置已保存");
     } catch (error) {
@@ -907,9 +1035,20 @@ const Admin = () => {
     try {
       if (editingCategory) {
         await updateCategory.mutateAsync({ id: editingCategory.id, name: categoryName, slug: categorySlug, description: categoryDescription });
+        logAction('update', 'category', categoryName, editingCategory.id, {
+          changes: {
+            name: categoryName !== editingCategory.name ? { from: editingCategory.name, to: categoryName } : undefined,
+          },
+          timestamp: new Date().toISOString(),
+        });
         toast.success("分类已更新");
       } else {
         await createCategory.mutateAsync({ name: categoryName, slug: categorySlug, description: categoryDescription });
+        logAction('create', 'category', categoryName, undefined, {
+          slug: categorySlug,
+          description: categoryDescription,
+          timestamp: new Date().toISOString(),
+        });
         toast.success("分类已创建");
       }
       setIsCategoryDialogOpen(false);
@@ -928,8 +1067,12 @@ const Admin = () => {
 
   const handleDeleteCategory = async () => {
     if (!deleteCategoryId) return;
+    const categoryToDelete = categories?.find(c => c.id === deleteCategoryId);
     try {
       await deleteCategoryMutation.mutateAsync(deleteCategoryId);
+      logAction('delete', 'category', categoryToDelete?.name || '未知分类', deleteCategoryId, {
+        timestamp: new Date().toISOString(),
+      });
       toast.success("分类已删除");
       setDeleteCategoryId(null);
     } catch (error) {
@@ -941,6 +1084,10 @@ const Admin = () => {
     try {
       await updateSiteSettings.mutateAsync({
         name: siteName,
+      });
+      logAction('update', 'settings', '网站设置', undefined, {
+        siteName,
+        timestamp: new Date().toISOString(),
       });
       toast.success("网站设置已保存");
     } catch (error) {
@@ -957,6 +1104,11 @@ const Admin = () => {
         loop: typewriterLoop,
         loopDelay: typewriterLoopDelay,
       });
+      logAction('update', 'settings', '打字机设置', undefined, {
+        enabled: typewriterEnabled,
+        titleSpeed: typewriterTitleSpeed,
+        timestamp: new Date().toISOString(),
+      });
       toast.success("打字机设置已保存");
     } catch (error) {
       toast.error("保存失败");
@@ -969,6 +1121,13 @@ const Admin = () => {
     try {
       const backup = await createBackup();
       downloadBackup(backup);
+      logAction('backup', 'settings', '创建数据备份', undefined, {
+        postsCount: backup.posts?.length || 0,
+        commentsCount: backup.comments?.length || 0,
+        tagsCount: backup.tags?.length || 0,
+        categoriesCount: backup.categories?.length || 0,
+        timestamp: new Date().toISOString(),
+      });
       toast.success('备份已创建并下载');
     } catch (error: any) {
       toast.error('备份失败: ' + error.message);
@@ -987,8 +1146,17 @@ const Admin = () => {
       const result = await restoreBackup(backup);
       
       if (result.success) {
+        logAction('restore_backup', 'settings', '恢复数据备份', undefined, {
+          fileName: file.name,
+          timestamp: new Date().toISOString(),
+        });
         toast.success('数据恢复成功');
       } else {
+        logAction('restore_backup', 'settings', '恢复数据备份(有错误)', undefined, {
+          fileName: file.name,
+          errors: result.errors,
+          timestamp: new Date().toISOString(),
+        });
         toast.error(`恢复完成但有错误: ${result.errors.join(', ')}`);
       }
     } catch (error: any) {
@@ -1045,6 +1213,14 @@ const Admin = () => {
         errorCount++;
       }
     }
+
+    logAction('import', 'post', `导入 ${successCount} 篇文章`, undefined, {
+      totalAttempted: importPreview.length,
+      successCount,
+      errorCount,
+      postTitles: importPreview.map(p => p.title),
+      timestamp: new Date().toISOString(),
+    });
 
     setImportLoading(false);
     setImportDialogOpen(false);
@@ -1960,7 +2136,16 @@ const Admin = () => {
                     {themes.map((theme) => (
                       <button
                         key={theme.id}
-                        onClick={() => setTheme(theme.id)}
+                        onClick={() => {
+                          const previousTheme = currentTheme;
+                          setTheme(theme.id);
+                          logAction('update', 'theme', theme.name, undefined, {
+                            from: previousTheme,
+                            to: theme.id,
+                            themeName: theme.name,
+                            timestamp: new Date().toISOString(),
+                          });
+                        }}
                         className={`p-4 rounded-lg border-2 transition-all text-left group ${
                           currentTheme === theme.id 
                             ? 'border-primary bg-primary/10 shadow-lg' 
@@ -2012,7 +2197,13 @@ const Admin = () => {
                     <Button 
                       variant="outline" 
                       onClick={() => {
+                        const previousTheme = currentTheme;
                         resetToDefault();
+                        logAction('update', 'theme', '恢复默认风格', undefined, {
+                          from: previousTheme,
+                          to: defaultTheme,
+                          timestamp: new Date().toISOString(),
+                        });
                         toast.success('已恢复默认风格');
                       }}
                     >
@@ -2136,18 +2327,31 @@ const Admin = () => {
               ) : (
                 <div className="space-y-2">
                   {adminLogs.map((log) => (
-                    <div key={log.id} className="blog-card p-3 sm:p-4">
-                      <div className="flex items-start gap-3">
+                    <details key={log.id} className="blog-card p-3 sm:p-4 group">
+                      <summary className="flex items-start gap-3 cursor-pointer list-none">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                           log.action === 'delete' ? 'bg-destructive/10 text-destructive' :
                           log.action === 'create' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                           log.action === 'publish' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                          log.action === 'approve' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                          log.action === 'reject' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                          log.action === 'backup' || log.action === 'restore_backup' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                          log.action === 'import' || log.action === 'export' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400' :
+                          log.action === 'schedule' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
                           'bg-secondary text-muted-foreground'
                         }`}>
                           {log.action === 'delete' ? <Trash2 className="w-4 h-4" /> :
                            log.action === 'create' ? <Plus className="w-4 h-4" /> :
                            log.action === 'publish' ? <Eye className="w-4 h-4" /> :
                            log.action === 'update' ? <Edit className="w-4 h-4" /> :
+                           log.action === 'approve' ? <Check className="w-4 h-4" /> :
+                           log.action === 'reject' ? <XCircle className="w-4 h-4" /> :
+                           log.action === 'backup' ? <DatabaseBackup className="w-4 h-4" /> :
+                           log.action === 'restore_backup' ? <RotateCcw className="w-4 h-4" /> :
+                           log.action === 'import' ? <FileUp className="w-4 h-4" /> :
+                           log.action === 'export' ? <Download className="w-4 h-4" /> :
+                           log.action === 'schedule' ? <Clock className="w-4 h-4" /> :
+                           log.action === 'restore' ? <History className="w-4 h-4" /> :
                            <FileText className="w-4 h-4" />}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -2172,8 +2376,26 @@ const Admin = () => {
                             {new Date(log.created_at).toLocaleString('zh-CN')}
                           </div>
                         </div>
-                      </div>
-                    </div>
+                        <div className="text-muted-foreground group-open:rotate-180 transition-transform">
+                          <ArrowDown className="w-4 h-4" />
+                        </div>
+                      </summary>
+                      {/* Detailed info */}
+                      {log.details && Object.keys(log.details).length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <div className="text-xs space-y-1">
+                            {Object.entries(log.details).map(([key, value]) => (
+                              <div key={key} className="flex gap-2">
+                                <span className="text-muted-foreground font-medium min-w-[80px]">{key}:</span>
+                                <span className="text-foreground break-all">
+                                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </details>
                   ))}
                 </div>
               )}
@@ -2186,7 +2408,23 @@ const Admin = () => {
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
         <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{editingPost ? "编辑文章" : "新建文章"}</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>{editingPost ? "编辑文章" : "新建文章"}</DialogTitle>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {isSaving && (
+                  <span className="flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    保存中...
+                  </span>
+                )}
+                {!isSaving && hasUnsavedChanges && (
+                  <span className="text-amber-600 dark:text-amber-400">● 未保存</span>
+                )}
+                {!isSaving && !hasUnsavedChanges && lastSaveTime && (
+                  <span className="text-green-600 dark:text-green-400">✓ 已保存</span>
+                )}
+              </div>
+            </div>
           </DialogHeader>
           <ScrollArea className="flex-1 -mx-6 px-6">
             <form onSubmit={handleSubmit} className="space-y-4 pb-4">
@@ -2315,9 +2553,19 @@ const Admin = () => {
                 <Label htmlFor="published">发布文章</Label>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                 <Button type="button" variant="ghost" onClick={() => setIsEditorOpen(false)} className="w-full sm:w-auto">
                   取消
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={saveNow}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className="w-full sm:w-auto"
+                >
+                  {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                  保存草稿
                 </Button>
                 <Button 
                   type="button" 
