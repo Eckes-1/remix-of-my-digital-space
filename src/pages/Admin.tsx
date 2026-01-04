@@ -9,6 +9,8 @@ import { useDashboardStats } from '@/hooks/useStats';
 import { useHeroSettings, useTypewriterSettings, useUpdateHeroSettings, useUpdateTypewriterSettings, useSiteSettings, useUpdateSiteSettings, HeroSettings, TypewriterSettings, SiteSettings } from '@/hooks/useSiteSettings';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useThemeStyles, THEME_STYLES } from '@/hooks/useThemeStyles';
+import { usePostVersions, useCreatePostVersion, useRestorePostVersion, PostVersion } from '@/hooks/usePostVersions';
+import { useSchedulePost, useCancelSchedule, formatDateTimeLocal, isScheduled } from '@/hooks/useScheduledPublish';
 import { supabase } from '@/integrations/supabase/client';
 import { exportToJSON, exportToCSV } from '@/utils/exportData';
 import { createBackup, downloadBackup, restoreBackup, parseBackupFile } from '@/utils/backupRestore';
@@ -52,7 +54,10 @@ import {
   ArrowDown,
   DatabaseBackup,
   FileUp,
-  RotateCcw
+  RotateCcw,
+  Clock,
+  History,
+  RotateCw
 } from 'lucide-react';
 import {
   Dialog,
@@ -195,6 +200,19 @@ const Admin = () => {
 
   // Theme styles
   const { currentTheme, setTheme, themes } = useThemeStyles();
+
+  // Scheduled publish state
+  const [scheduledAt, setScheduledAt] = useState<string>('');
+  const schedulePost = useSchedulePost();
+  const cancelSchedule = useCancelSchedule();
+
+  // Version history state
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
+  const [selectedPostForVersions, setSelectedPostForVersions] = useState<Post | null>(null);
+  const { data: postVersions, isLoading: versionsLoading } = usePostVersions(selectedPostForVersions?.id || null);
+  const createVersion = useCreatePostVersion();
+  const restoreVersion = useRestorePostVersion();
+  const [compareVersions, setCompareVersions] = useState<{ v1: PostVersion | null; v2: PostVersion | null }>({ v1: null, v2: null });
 
   // Auto-save
   const draftData = useMemo(() => ({
@@ -388,6 +406,17 @@ const Admin = () => {
 
     try {
       if (editingPost) {
+        // Create a version before saving
+        await createVersion.mutateAsync({
+          postId: editingPost.id,
+          title: editingPost.title,
+          content: editingPost.content,
+          excerpt: editingPost.excerpt,
+          category: editingPost.category,
+          cover_image: editingPost.cover_image,
+          read_time: editingPost.read_time,
+        });
+
         await updatePost.mutateAsync({
           id: editingPost.id,
           title,
@@ -400,7 +429,7 @@ const Admin = () => {
           published_at: published ? new Date().toISOString() : null,
           cover_image: coverImage,
         });
-        toast.success("文章已更新");
+        toast.success("文章已更新（历史版本已保存）");
       } else {
         await createPost.mutateAsync({
           title,
@@ -426,6 +455,51 @@ const Admin = () => {
       } else {
         toast.error("保存失败，请重试");
       }
+    }
+  };
+
+  // Handle scheduled publish
+  const handleSchedulePost = async (postId: string) => {
+    if (!scheduledAt) {
+      toast.error('请选择定时发布时间');
+      return;
+    }
+    
+    const scheduleDate = new Date(scheduledAt);
+    if (scheduleDate <= new Date()) {
+      toast.error('定时发布时间必须是未来时间');
+      return;
+    }
+
+    try {
+      await schedulePost.mutateAsync({ postId, scheduledAt: scheduleDate.toISOString() });
+      toast.success(`文章已设定在 ${scheduleDate.toLocaleString('zh-CN')} 自动发布`);
+      setScheduledAt('');
+    } catch (error) {
+      toast.error('设置定时发布失败');
+    }
+  };
+
+  const handleCancelSchedule = async (postId: string) => {
+    try {
+      await cancelSchedule.mutateAsync(postId);
+      toast.success('已取消定时发布');
+    } catch (error) {
+      toast.error('取消定时发布失败');
+    }
+  };
+
+  // Handle version restore
+  const handleRestoreVersion = async (version: PostVersion) => {
+    if (!selectedPostForVersions) return;
+    
+    try {
+      await restoreVersion.mutateAsync({ postId: selectedPostForVersions.id, version });
+      toast.success(`已恢复到版本 ${version.version_number}`);
+      setVersionDialogOpen(false);
+      setSelectedPostForVersions(null);
+    } catch (error) {
+      toast.error('恢复版本失败');
     }
   };
 
@@ -1307,6 +1381,11 @@ const Admin = () => {
                                 <Eye className="w-3 h-3" />
                                 已发布
                               </span>
+                            ) : (post as any).scheduled_at && isScheduled((post as any).scheduled_at) ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                                <Clock className="w-3 h-3" />
+                                定时 {new Date((post as any).scheduled_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
                                 <EyeOff className="w-3 h-3" />
@@ -1330,24 +1409,49 @@ const Admin = () => {
                               权重: {post.sort_order ?? 0}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 mt-3 sm:mt-0 sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2">
+                          <div className="flex flex-wrap items-center gap-1 mt-3 sm:mt-0 sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => { setEditingPost(post); setIsEditorOpen(true); }}
-                              className="flex-1 sm:flex-none h-8"
+                              className="h-8 w-8 p-0"
+                              title="编辑"
                             >
-                              <Edit className="w-4 h-4 sm:mr-0 mr-1" />
-                              <span className="sm:hidden">编辑</span>
+                              <Edit className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setDeletePostId(post.id)}
-                              className="text-destructive hover:text-destructive flex-1 sm:flex-none h-8"
+                              onClick={() => { setSelectedPostForVersions(post); setVersionDialogOpen(true); }}
+                              className="h-8 w-8 p-0"
+                              title="版本历史"
                             >
-                              <Trash2 className="w-4 h-4 sm:mr-0 mr-1" />
-                              <span className="sm:hidden">删除</span>
+                              <History className="w-4 h-4" />
+                            </Button>
+                            {!post.published && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const defaultTime = new Date();
+                                  defaultTime.setHours(defaultTime.getHours() + 1);
+                                  setScheduledAt(formatDateTimeLocal(defaultTime));
+                                  setEditingPost(post);
+                                }}
+                                className="h-8 w-8 p-0"
+                                title="定时发布"
+                              >
+                                <Clock className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeletePostId(post.id)}
+                              className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                              title="删除"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
@@ -1832,28 +1936,57 @@ const Admin = () => {
                     <Palette className="w-5 h-5" />
                     网站风格
                   </h3>
-                  <p className="text-sm text-muted-foreground">选择一种风格应用到整个网站，支持明暗模式自动适配</p>
+                  <p className="text-sm text-muted-foreground">
+                    选择一种风格应用到整个网站，每种风格都有独特的字体、圆角、间距、阴影和动画效果
+                  </p>
                   
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {themes.map((theme) => (
                       <button
                         key={theme.id}
                         onClick={() => setTheme(theme.id)}
-                        className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        className={`p-4 rounded-lg border-2 transition-all text-left group ${
                           currentTheme === theme.id 
-                            ? 'border-primary bg-primary/10' 
-                            : 'border-border hover:border-primary/50'
+                            ? 'border-primary bg-primary/10 shadow-lg' 
+                            : 'border-border hover:border-primary/50 hover:shadow-md'
                         }`}
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div 
-                            className="w-4 h-4 rounded-full" 
-                            style={{ backgroundColor: `hsl(${theme.colors.light['--primary']})` }}
-                          />
-                          {currentTheme === theme.id && <Check className="w-3 h-3 text-primary" />}
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-6 h-6 rounded-full shadow-inner" 
+                              style={{ backgroundColor: `hsl(${theme.colors.light['--primary']})` }}
+                            />
+                            <div 
+                              className="w-4 h-4 rounded-full opacity-60" 
+                              style={{ backgroundColor: `hsl(${theme.colors.light['--accent']})` }}
+                            />
+                          </div>
+                          {currentTheme === theme.id && (
+                            <span className="inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                              <Check className="w-3 h-3" />
+                              当前
+                            </span>
+                          )}
                         </div>
-                        <div className="text-xs font-medium truncate">{theme.name}</div>
-                        <div className="text-[10px] text-muted-foreground line-clamp-1">{theme.description}</div>
+                        <div className="text-sm font-medium mb-1">{theme.name}</div>
+                        <div className="text-xs text-muted-foreground mb-3">{theme.description}</div>
+                        
+                        {/* Style attributes */}
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-secondary rounded">
+                            {theme.spacing === 'compact' ? '紧凑' : theme.spacing === 'spacious' ? '宽松' : '标准'}间距
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-secondary rounded">
+                            {theme.shadows === 'none' ? '无' : theme.shadows === 'subtle' ? '微弱' : theme.shadows === 'medium' ? '中等' : '强烈'}阴影
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-secondary rounded">
+                            {theme.cardStyle === 'flat' ? '扁平' : theme.cardStyle === 'elevated' ? '浮动' : theme.cardStyle === 'bordered' ? '边框' : '玻璃'}卡片
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-secondary rounded">
+                            {theme.animations === 'none' ? '无' : theme.animations === 'minimal' ? '极简' : theme.animations === 'smooth' ? '流畅' : '活泼'}动画
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -2384,6 +2517,189 @@ const Admin = () => {
               {importLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
               确认导入
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Post Dialog */}
+      <Dialog open={!!editingPost && !!scheduledAt} onOpenChange={(open) => { if (!open) { setScheduledAt(''); setEditingPost(null); } }}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              定时发布
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              为文章 <span className="font-medium text-foreground">"{editingPost?.title}"</span> 设置定时发布时间
+            </p>
+            <div className="space-y-2">
+              <Label>发布时间</Label>
+              <Input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                min={formatDateTimeLocal(new Date())}
+              />
+            </div>
+            {(editingPost as any)?.scheduled_at && isScheduled((editingPost as any).scheduled_at) && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+                <p className="text-blue-700 dark:text-blue-300">
+                  当前已设定: {new Date((editingPost as any).scheduled_at).toLocaleString('zh-CN')}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editingPost && handleCancelSchedule(editingPost.id)}
+                  className="mt-2 text-blue-700 dark:text-blue-300"
+                >
+                  <XCircle className="w-4 h-4 mr-1" />
+                  取消定时发布
+                </Button>
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => { setScheduledAt(''); setEditingPost(null); }} className="w-full sm:w-auto">
+                取消
+              </Button>
+              <Button 
+                onClick={() => editingPost && handleSchedulePost(editingPost.id)}
+                disabled={schedulePost.isPending || !scheduledAt}
+                className="w-full sm:w-auto"
+              >
+                {schedulePost.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Clock className="w-4 h-4 mr-2" />}
+                确认定时
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Version History Dialog */}
+      <Dialog open={versionDialogOpen} onOpenChange={setVersionDialogOpen}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5" />
+              版本历史 - {selectedPostForVersions?.title}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {versionsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : !postVersions || postVersions.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <History className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>暂无历史版本</p>
+              <p className="text-sm mt-1">编辑文章后会自动保存版本</p>
+            </div>
+          ) : (
+            <ScrollArea className="flex-1 -mx-6 px-6">
+              <div className="space-y-3 pb-4">
+                {postVersions.map((version) => (
+                  <div key={version.id} className="p-4 border rounded-lg hover:border-primary/50 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                            v{version.version_number}
+                          </span>
+                          <span className="font-medium truncate">{version.title}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{version.excerpt}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span className="bg-secondary px-2 py-0.5 rounded">{version.category}</span>
+                          <span>{version.read_time}</span>
+                          <span>·</span>
+                          <span>{new Date(version.created_at).toLocaleString('zh-CN')}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCompareVersions({ v1: version, v2: null })}
+                          className="h-8"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          查看
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRestoreVersion(version)}
+                          disabled={restoreVersion.isPending}
+                          className="h-8"
+                        >
+                          {restoreVersion.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4 mr-1" />}
+                          恢复
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+          
+          <div className="flex-shrink-0 flex justify-end pt-4 border-t">
+            <Button variant="ghost" onClick={() => { setVersionDialogOpen(false); setSelectedPostForVersions(null); }}>
+              关闭
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Version Preview Dialog */}
+      <Dialog open={!!compareVersions.v1} onOpenChange={(open) => { if (!open) setCompareVersions({ v1: null, v2: null }); }}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>
+              版本 {compareVersions.v1?.version_number} 内容预览
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            {compareVersions.v1 && (
+              <div className="space-y-4 pb-4">
+                <div>
+                  <Label className="text-muted-foreground">标题</Label>
+                  <p className="mt-1 font-medium">{compareVersions.v1.title}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">摘要</Label>
+                  <p className="mt-1 text-sm">{compareVersions.v1.excerpt}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">正文</Label>
+                  <pre className="mt-1 p-4 bg-secondary rounded-lg text-sm whitespace-pre-wrap font-mono max-h-96 overflow-auto">
+                    {compareVersions.v1.content}
+                  </pre>
+                </div>
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                  <span>分类: {compareVersions.v1.category}</span>
+                  <span>阅读时长: {compareVersions.v1.read_time}</span>
+                  <span>保存时间: {new Date(compareVersions.v1.created_at).toLocaleString('zh-CN')}</span>
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+          <div className="flex-shrink-0 flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+            <Button variant="ghost" onClick={() => setCompareVersions({ v1: null, v2: null })} className="w-full sm:w-auto">
+              关闭
+            </Button>
+            {compareVersions.v1 && (
+              <Button 
+                onClick={() => handleRestoreVersion(compareVersions.v1!)}
+                disabled={restoreVersion.isPending}
+                className="w-full sm:w-auto"
+              >
+                {restoreVersion.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCw className="w-4 h-4 mr-2" />}
+                恢复此版本
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

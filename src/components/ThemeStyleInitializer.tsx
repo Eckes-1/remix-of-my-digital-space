@@ -7,7 +7,7 @@ const STORAGE_KEY = 'site-theme-style';
 const ThemeStyleInitializer = () => {
   useEffect(() => {
     const applyStoredTheme = () => {
-      const storedThemeId = localStorage.getItem(STORAGE_KEY) || 'warm-cream';
+      const storedThemeId = localStorage.getItem(STORAGE_KEY) || 'warm-cozy';
       const theme = THEME_STYLES.find(t => t.id === storedThemeId);
       if (!theme) return;
 
@@ -15,9 +15,24 @@ const ThemeStyleInitializer = () => {
       const isDark = root.classList.contains('dark');
       const colors = isDark ? theme.colors.dark : theme.colors.light;
 
+      // Apply color variables
       Object.entries(colors).forEach(([key, value]) => {
         root.style.setProperty(key, value);
       });
+
+      // Apply typography
+      root.style.setProperty('--font-heading', theme.fontFamily.heading);
+      root.style.setProperty('--font-body', theme.fontFamily.body);
+
+      // Apply border radius
+      root.style.setProperty('--radius', theme.borderRadius);
+
+      // Apply data attributes for CSS hooks
+      root.dataset.spacing = theme.spacing;
+      root.dataset.shadows = theme.shadows;
+      root.dataset.animations = theme.animations;
+      root.dataset.cardStyle = theme.cardStyle;
+      root.dataset.buttonStyle = theme.buttonStyle;
     };
 
     // Apply on mount
