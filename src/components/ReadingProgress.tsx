@@ -36,15 +36,15 @@ const ReadingProgress = () => {
         />
       </div>
 
-      {/* Back to top button with progress ring */}
+      {/* Back to top button with progress ring and percentage */}
       <button
         onClick={scrollToTop}
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full",
+          "fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full",
           "bg-card border border-border shadow-lg",
           "flex items-center justify-center",
           "transition-all duration-300 ease-out",
-          "hover:scale-110 hover:shadow-xl",
+          "hover:scale-110 hover:shadow-xl group",
           showButton 
             ? "opacity-100 translate-y-0" 
             : "opacity-0 translate-y-4 pointer-events-none"
@@ -53,32 +53,39 @@ const ReadingProgress = () => {
       >
         {/* SVG progress ring */}
         <svg 
-          className="absolute inset-0 w-12 h-12 -rotate-90"
-          viewBox="0 0 48 48"
+          className="absolute inset-0 w-14 h-14 -rotate-90"
+          viewBox="0 0 56 56"
         >
           <circle
-            cx="24"
-            cy="24"
-            r="20"
+            cx="28"
+            cy="28"
+            r="24"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
             className="text-secondary"
           />
           <circle
-            cx="24"
-            cy="24"
-            r="20"
+            cx="28"
+            cy="28"
+            r="24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
             className="text-primary transition-all duration-150"
-            strokeDasharray={`${2 * Math.PI * 20}`}
-            strokeDashoffset={`${2 * Math.PI * 20 * (1 - progress / 100)}`}
+            strokeDasharray={`${2 * Math.PI * 24}`}
+            strokeDashoffset={`${2 * Math.PI * 24 * (1 - progress / 100)}`}
           />
         </svg>
-        <ArrowUp className="w-5 h-5 text-foreground relative z-10" />
+        
+        {/* Content: Arrow or Percentage */}
+        <div className="relative z-10 flex flex-col items-center justify-center">
+          <ArrowUp className="w-4 h-4 text-foreground group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] font-medium text-muted-foreground leading-none">
+            {Math.round(progress)}%
+          </span>
+        </div>
       </button>
     </>
   );
