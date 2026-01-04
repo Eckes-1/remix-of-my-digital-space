@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   Plus, 
   Edit, 
@@ -38,9 +39,9 @@ import {
   Heart,
   TrendingUp,
   FolderOpen,
-  Type,
   Palette,
-  RefreshCw
+  Filter,
+  Calendar
 } from 'lucide-react';
 import {
   Dialog,
@@ -58,6 +59,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const Admin = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -95,6 +103,18 @@ const Admin = () => {
   const [deleteTagId, setDeleteTagId] = useState<string | null>(null);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  // Filter state for posts
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  // Bulk edit dialog state
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkEditCategory, setBulkEditCategory] = useState<string>('');
+  const [bulkEditReadTime, setBulkEditReadTime] = useState<string>('');
+
+  // Bulk operation progress
+  const [bulkOperating, setBulkOperating] = useState(false);
 
   // Post form state
   const [title, setTitle] = useState('');
@@ -139,9 +159,6 @@ const Admin = () => {
 
   // Site settings state
   const [siteName, setSiteName] = useState('寒冬随笔');
-  const [textReplacements, setTextReplacements] = useState<Array<{ from: string; to: string }>>([]);
-  const [newReplacementFrom, setNewReplacementFrom] = useState('');
-  const [newReplacementTo, setNewReplacementTo] = useState('');
 
   // Auto-save
   const draftData = useMemo(() => ({
@@ -155,6 +172,23 @@ const Admin = () => {
   }), [title, slug, excerpt, content, category, readTime, coverImage]);
   
   const { loadDraft, clearDraft } = useAutoSave(editingPost?.id || null, draftData);
+
+  // Filtered posts
+  const filteredPosts = useMemo(() => {
+    if (!posts) return [];
+    return posts.filter(post => {
+      if (filterCategory !== 'all' && post.category !== filterCategory) return false;
+      if (filterStatus === 'published' && !post.published) return false;
+      if (filterStatus === 'draft' && post.published) return false;
+      return true;
+    });
+  }, [posts, filterCategory, filterStatus]);
+
+  // Unique categories from posts
+  const postCategories = useMemo(() => {
+    if (!posts) return [];
+    return [...new Set(posts.map(p => p.category))];
+  }, [posts]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -191,7 +225,6 @@ const Admin = () => {
   useEffect(() => {
     if (siteSettings) {
       setSiteName(siteSettings.name);
-      setTextReplacements(siteSettings.textReplacements || []);
     }
   }, [siteSettings]);
 
@@ -378,42 +411,48 @@ const Admin = () => {
     );
   };
 
-  const toggleSelectAllPosts = () => {
+  const toggleSelectAllFiltered = () => {
+    if (!filteredPosts?.length) return;
+    const allFilteredIds = filteredPosts.map((p) => p.id);
+    const allSelected = allFilteredIds.every((id) => selectedPostIds.includes(id));
+    if (allSelected) {
+      setSelectedPostIds((prev) => prev.filter((id) => !allFilteredIds.includes(id)));
+    } else {
+      setSelectedPostIds((prev) => [...new Set([...prev, ...allFilteredIds])]);
+    }
+  };
+
+  const selectAllPosts = () => {
     if (!posts?.length) return;
-    setSelectedPostIds((prev) => (prev.length === posts.length ? [] : posts.map((p) => p.id)));
+    setSelectedPostIds(posts.map((p) => p.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedPostIds([]);
   };
 
   const handleBulkPublish = async () => {
     if (!selectedPostIds.length) return;
+    setBulkOperating(true);
 
     const now = new Date().toISOString();
-    const toPublish = (posts || [])
-      .filter((p) => selectedPostIds.includes(p.id) && !p.published)
-      .map((p) => p.id);
-    const alreadyPublished = selectedPostIds.filter((id) => !toPublish.includes(id));
-
     try {
-      if (toPublish.length) {
-        await bulkUpdatePosts.mutateAsync({
-          ids: toPublish,
-          updates: { published: true, published_at: now },
-        });
-      }
-      if (alreadyPublished.length) {
-        await bulkUpdatePosts.mutateAsync({
-          ids: alreadyPublished,
-          updates: { published: true },
-        });
-      }
+      await bulkUpdatePosts.mutateAsync({
+        ids: selectedPostIds,
+        updates: { published: true, published_at: now },
+      });
       toast.success(`已批量发布 ${selectedPostIds.length} 篇文章`);
       setSelectedPostIds([]);
     } catch (error) {
       toast.error("批量发布失败");
+    } finally {
+      setBulkOperating(false);
     }
   };
 
   const handleBulkUnpublish = async () => {
     if (!selectedPostIds.length) return;
+    setBulkOperating(true);
     try {
       await bulkUpdatePosts.mutateAsync({
         ids: selectedPostIds,
@@ -423,11 +462,14 @@ const Admin = () => {
       setSelectedPostIds([]);
     } catch (error) {
       toast.error("批量修改失败");
+    } finally {
+      setBulkOperating(false);
     }
   };
 
   const handleBulkDelete = async () => {
     if (!selectedPostIds.length) return;
+    setBulkOperating(true);
     try {
       await bulkDeletePosts.mutateAsync({ ids: selectedPostIds });
       toast.success(`已删除 ${selectedPostIds.length} 篇文章`);
@@ -435,6 +477,36 @@ const Admin = () => {
       setBulkDeleteOpen(false);
     } catch (error) {
       toast.error("批量删除失败");
+    } finally {
+      setBulkOperating(false);
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (!selectedPostIds.length) return;
+    setBulkOperating(true);
+    
+    const updates: Partial<Post> = {};
+    if (bulkEditCategory) updates.category = bulkEditCategory;
+    if (bulkEditReadTime) updates.read_time = bulkEditReadTime;
+
+    if (Object.keys(updates).length === 0) {
+      toast.error("请选择要修改的内容");
+      setBulkOperating(false);
+      return;
+    }
+
+    try {
+      await bulkUpdatePosts.mutateAsync({ ids: selectedPostIds, updates });
+      toast.success(`已批量修改 ${selectedPostIds.length} 篇文章`);
+      setSelectedPostIds([]);
+      setBulkEditOpen(false);
+      setBulkEditCategory('');
+      setBulkEditReadTime('');
+    } catch (error) {
+      toast.error("批量修改失败");
+    } finally {
+      setBulkOperating(false);
     }
   };
 
@@ -574,31 +646,11 @@ const Admin = () => {
     try {
       await updateSiteSettings.mutateAsync({
         name: siteName,
-        textReplacements,
       });
       toast.success("网站设置已保存");
     } catch (error) {
       toast.error("保存失败");
     }
-  };
-
-  const addTextReplacement = () => {
-    if (newReplacementFrom && newReplacementTo) {
-      setTextReplacements([...textReplacements, { from: newReplacementFrom, to: newReplacementTo }]);
-      setNewReplacementFrom('');
-      setNewReplacementTo('');
-    }
-  };
-
-  const removeTextReplacement = (index: number) => {
-    setTextReplacements(textReplacements.filter((_, i) => i !== index));
-  };
-
-  const applyPresetMoJiToHanDong = () => {
-    setTextReplacements((prev) => {
-      const withoutMoJi = prev.filter((r) => r.from !== '墨迹');
-      return [...withoutMoJi, { from: '墨迹', to: '寒冬' }];
-    });
   };
 
   const handleSaveTypewriterSettings = async () => {
@@ -640,9 +692,9 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <div className="flex items-center gap-3 sm:gap-6">
               <Link 
                 to="/" 
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -650,19 +702,19 @@ const Admin = () => {
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm hidden sm:inline">返回首页</span>
               </Link>
-              <div className="h-5 w-px bg-border" />
+              <div className="h-5 w-px bg-border hidden sm:block" />
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <FileText className="w-4 h-4 text-primary" />
                 </div>
-                <h1 className="font-serif text-lg font-semibold text-foreground">后台管理</h1>
+                <h1 className="font-serif text-base sm:text-lg font-semibold text-foreground">后台管理</h1>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden md:flex items-center gap-2 bg-secondary/50 rounded-full px-3 py-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-xs text-muted-foreground">{user.email}</span>
+                <span className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</span>
                 {isAdmin && (
                   <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                     管理员
@@ -675,59 +727,63 @@ const Admin = () => {
                 onClick={handleSignOut}
                 className="rounded-full"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                退出
+                <LogOut className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">退出</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {!isAdmin ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">您没有管理员权限</p>
             <Link to="/" className="text-primary hover:underline">返回首页</Link>
           </div>
         ) : (
-          <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-3xl grid-cols-6">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                <LayoutDashboard className="w-4 h-4" />
-                <span className="hidden sm:inline">仪表盘</span>
-              </TabsTrigger>
-              <TabsTrigger value="posts" className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">文章</span>
-              </TabsTrigger>
-              <TabsTrigger value="comments" className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                <span className="hidden sm:inline">评论</span>
-                {pendingComments.length > 0 && (
-                  <span className="bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">
-                    {pendingComments.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="tags" className="flex items-center gap-2">
-                <TagIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">标签</span>
-              </TabsTrigger>
-              <TabsTrigger value="categories" className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4" />
-                <span className="hidden sm:inline">分类</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline">设置</span>
-              </TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="dashboard" className="space-y-4 sm:space-y-6">
+            {/* Scrollable TabsList for mobile */}
+            <ScrollArea className="w-full whitespace-nowrap">
+              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-6 sm:w-full sm:max-w-3xl">
+                <TabsTrigger value="dashboard" className="flex items-center gap-2 px-3 sm:px-4">
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">仪表盘</span>
+                </TabsTrigger>
+                <TabsTrigger value="posts" className="flex items-center gap-2 px-3 sm:px-4">
+                  <FileText className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">文章</span>
+                </TabsTrigger>
+                <TabsTrigger value="comments" className="flex items-center gap-2 px-3 sm:px-4">
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">评论</span>
+                  {pendingComments.length > 0 && (
+                    <span className="bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">
+                      {pendingComments.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="tags" className="flex items-center gap-2 px-3 sm:px-4">
+                  <TagIcon className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">标签</span>
+                </TabsTrigger>
+                <TabsTrigger value="categories" className="flex items-center gap-2 px-3 sm:px-4">
+                  <FolderOpen className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">分类</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-2 px-3 sm:px-4">
+                  <Settings className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">设置</span>
+                </TabsTrigger>
+              </TabsList>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
             {/* Dashboard Tab */}
-            <TabsContent value="dashboard" className="space-y-6">
-              <h2 className="font-serif text-2xl font-bold text-foreground">仪表盘</h2>
+            <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">仪表盘</h2>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <StatCard
                   label="文章总数"
                   value={stats?.totalPosts || 0}
@@ -752,7 +808,7 @@ const Admin = () => {
                 />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="blog-card">
                   <h3 className="font-semibold mb-4">标签统计</h3>
                   <p className="text-3xl font-bold text-primary">{stats?.totalTags || 0}</p>
@@ -775,131 +831,195 @@ const Admin = () => {
             </TabsContent>
 
             {/* Posts Tab */}
-            <TabsContent value="posts" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="font-serif text-2xl font-bold text-foreground">
-                  文章管理 ({posts?.length || 0})
+            <TabsContent value="posts" className="space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
+                  文章管理 ({filteredPosts?.length || 0})
                 </h2>
-                <Button onClick={() => { setEditingPost(null); setIsEditorOpen(true); }}>
+                <Button onClick={() => { setEditingPost(null); setIsEditorOpen(true); }} className="w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   新建文章
                 </Button>
               </div>
 
+              {/* Filters */}
+              <div className="blog-card">
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">筛选：</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="w-[120px] h-9">
+                        <SelectValue placeholder="状态" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部状态</SelectItem>
+                        <SelectItem value="published">已发布</SelectItem>
+                        <SelectItem value="draft">草稿</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                      <SelectTrigger className="w-[120px] h-9">
+                        <SelectValue placeholder="分类" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部分类</SelectItem>
+                        {postCategories.map(cat => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
               {isLoading ? (
                 <div className="text-center py-12 text-muted-foreground">加载中...</div>
-              ) : posts?.length === 0 ? (
+              ) : filteredPosts?.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   暂无文章，点击上方按钮创建第一篇文章
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="blog-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={!!posts?.length && selectedPostIds.length === posts.length}
-                        onChange={toggleSelectAllPosts}
-                        className="h-4 w-4 rounded border-border"
-                        aria-label="全选文章"
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        已选择 {selectedPostIds.length} 篇
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        onClick={handleBulkPublish}
-                        disabled={!selectedPostIds.length || bulkUpdatePosts.isPending || bulkDeletePosts.isPending}
-                      >
-                        批量发布
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleBulkUnpublish}
-                        disabled={!selectedPostIds.length || bulkUpdatePosts.isPending || bulkDeletePosts.isPending}
-                      >
-                        转为草稿
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setBulkDeleteOpen(true)}
-                        disabled={!selectedPostIds.length || bulkUpdatePosts.isPending || bulkDeletePosts.isPending}
-                      >
-                        批量删除
-                      </Button>
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Bulk actions bar */}
+                  <div className="blog-card">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <input
+                          type="checkbox"
+                          checked={filteredPosts.length > 0 && filteredPosts.every(p => selectedPostIds.includes(p.id))}
+                          onChange={toggleSelectAllFiltered}
+                          className="h-4 w-4 rounded border-border"
+                          aria-label="全选当前筛选结果"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          已选 {selectedPostIds.length} / {posts?.length || 0}
+                        </span>
+                        <Button variant="ghost" size="sm" onClick={selectAllPosts} className="text-xs h-7 px-2">
+                          全选所有
+                        </Button>
+                        {selectedPostIds.length > 0 && (
+                          <Button variant="ghost" size="sm" onClick={clearSelection} className="text-xs h-7 px-2">
+                            清除选择
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          onClick={handleBulkPublish}
+                          disabled={!selectedPostIds.length || bulkOperating}
+                          className="h-8 text-xs sm:text-sm"
+                        >
+                          {bulkOperating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                          批量发布
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleBulkUnpublish}
+                          disabled={!selectedPostIds.length || bulkOperating}
+                          className="h-8 text-xs sm:text-sm"
+                        >
+                          转为草稿
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setBulkEditOpen(true)}
+                          disabled={!selectedPostIds.length || bulkOperating}
+                          className="h-8 text-xs sm:text-sm"
+                        >
+                          批量修改
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setBulkDeleteOpen(true)}
+                          disabled={!selectedPostIds.length || bulkOperating}
+                          className="h-8 text-xs sm:text-sm"
+                        >
+                          批量删除
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
-                  {posts?.map((post) => (
+                  {/* Post list - mobile optimized */}
+                  {filteredPosts?.map((post) => (
                     <div
                       key={post.id}
-                      className="blog-card flex items-center justify-between gap-4"
+                      className="blog-card"
                     >
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="flex items-start gap-3 sm:gap-4">
                         <input
                           type="checkbox"
                           checked={selectedPostIds.includes(post.id)}
                           onChange={() => togglePostSelected(post.id)}
-                          className="h-4 w-4 rounded border-border"
+                          className="h-4 w-4 rounded border-border mt-1 flex-shrink-0"
                           aria-label={`选择文章 ${post.title}`}
                         />
-                        {post.cover_image ? (
-                          <img 
-                            src={post.cover_image} 
-                            alt="" 
-                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
-                            <FileText className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                        )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-foreground truncate">{post.title}</h3>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                            <span className="px-2 py-0.5 bg-secondary rounded">{post.category}</span>
-                            <span>{post.read_time}</span>
-                            <span className="flex items-center gap-1">
-                              {post.published ? (
-                                <>
-                                  <Eye className="w-3 h-3" />
-                                  已发布
-                                </>
-                              ) : (
-                                <>
-                                  <EyeOff className="w-3 h-3" />
-                                  草稿
-                                </>
-                              )}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <TrendingUp className="w-3 h-3" />
-                              {post.view_count}
-                            </span>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                            {post.cover_image ? (
+                              <img 
+                                src={post.cover_image} 
+                                alt="" 
+                                className="w-full sm:w-16 h-24 sm:h-12 rounded-lg object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="hidden sm:flex w-16 h-12 rounded-lg bg-secondary items-center justify-center flex-shrink-0">
+                                <FileText className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-foreground line-clamp-2 sm:truncate">{post.title}</h3>
+                              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-1">
+                                <span className="px-2 py-0.5 bg-secondary rounded">{post.category}</span>
+                                <span>{post.read_time}</span>
+                                <span className="flex items-center gap-1">
+                                  {post.published ? (
+                                    <>
+                                      <Eye className="w-3 h-3" />
+                                      已发布
+                                    </>
+                                  ) : (
+                                    <>
+                                      <EyeOff className="w-3 h-3" />
+                                      草稿
+                                    </>
+                                  )}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <TrendingUp className="w-3 h-3" />
+                                  {post.view_count}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-3 sm:mt-0 sm:absolute sm:right-4 sm:top-1/2 sm:-translate-y-1/2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => { setEditingPost(post); setIsEditorOpen(true); }}
+                              className="flex-1 sm:flex-none h-8"
+                            >
+                              <Edit className="w-4 h-4 sm:mr-0 mr-1" />
+                              <span className="sm:hidden">编辑</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeletePostId(post.id)}
+                              className="text-destructive hover:text-destructive flex-1 sm:flex-none h-8"
+                            >
+                              <Trash2 className="w-4 h-4 sm:mr-0 mr-1" />
+                              <span className="sm:hidden">删除</span>
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setEditingPost(post); setIsEditorOpen(true); }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeletePostId(post.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
                       </div>
                     </div>
                   ))}
@@ -908,8 +1028,8 @@ const Admin = () => {
             </TabsContent>
 
             {/* Comments Tab */}
-            <TabsContent value="comments" className="space-y-6">
-              <h2 className="font-serif text-2xl font-bold text-foreground">
+            <TabsContent value="comments" className="space-y-4 sm:space-y-6">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
                 评论管理 ({comments?.length || 0})
               </h2>
 
@@ -918,16 +1038,16 @@ const Admin = () => {
               ) : comments?.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">暂无评论</div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {pendingComments.length > 0 && (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                         <span className="w-2 h-2 bg-amber-500 rounded-full" />
                         待审核 ({pendingComments.length})
                       </h3>
                       {pendingComments.map((comment) => (
                         <CommentCard 
-                          key={comment.id} 
+                          key={comment.id}
                           comment={comment}
                           onApprove={() => handleApproveComment(comment.id, true)}
                           onDelete={() => setDeleteCommentId(comment.id)}
@@ -937,14 +1057,14 @@ const Admin = () => {
                   )}
 
                   {approvedComments.length > 0 && (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                         <span className="w-2 h-2 bg-green-500 rounded-full" />
                         已通过 ({approvedComments.length})
                       </h3>
                       {approvedComments.map((comment) => (
                         <CommentCard 
-                          key={comment.id} 
+                          key={comment.id}
                           comment={comment}
                           onApprove={() => handleApproveComment(comment.id, false)}
                           onDelete={() => setDeleteCommentId(comment.id)}
@@ -958,12 +1078,12 @@ const Admin = () => {
             </TabsContent>
 
             {/* Tags Tab */}
-            <TabsContent value="tags" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="font-serif text-2xl font-bold text-foreground">
+            <TabsContent value="tags" className="space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
                   标签管理 ({tags?.length || 0})
                 </h2>
-                <Button onClick={() => { setEditingTag(null); setTagName(''); setTagSlug(''); setIsTagDialogOpen(true); }}>
+                <Button onClick={() => { setEditingTag(null); setTagName(''); setTagSlug(''); setIsTagDialogOpen(true); }} className="w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   新建标签
                 </Button>
@@ -976,18 +1096,19 @@ const Admin = () => {
                   暂无标签，点击上方按钮创建
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                   {tags?.map((tag) => (
-                    <div key={tag.id} className="blog-card flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-foreground">{tag.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">/{tag.slug}</p>
+                    <div key={tag.id} className="blog-card flex items-center justify-between p-3 sm:p-4">
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">{tag.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">/{tag.slug}</p>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => { setEditingTag(tag); setTagName(tag.name); setTagSlug(tag.slug); setIsTagDialogOpen(true); }}
+                          className="h-8 w-8 p-0"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -995,7 +1116,7 @@ const Admin = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeleteTagId(tag.id)}
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive h-8 w-8 p-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1007,15 +1128,15 @@ const Admin = () => {
             </TabsContent>
 
             {/* Settings Tab */}
-            <TabsContent value="settings" className="space-y-6">
-              <h2 className="font-serif text-2xl font-bold text-foreground">网站设置</h2>
+            <TabsContent value="settings" className="space-y-4 sm:space-y-6">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">网站设置</h2>
               
-              <div className="grid gap-6">
+              <div className="grid gap-4 sm:gap-6">
                 {/* Hero Settings */}
                 <div className="blog-card space-y-4">
                   <h3 className="font-semibold text-lg">Hero区域设置</h3>
                   
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>标题</Label>
                       <Input
@@ -1130,7 +1251,7 @@ const Admin = () => {
                     </>
                   )}
 
-                  <Button onClick={handleSaveHeroSettings} disabled={updateHeroSettings.isPending}>
+                  <Button onClick={handleSaveHeroSettings} disabled={updateHeroSettings.isPending} className="w-full sm:w-auto">
                     <Save className="w-4 h-4 mr-2" />
                     保存Hero设置
                   </Button>
@@ -1151,7 +1272,7 @@ const Admin = () => {
 
                   {typewriterEnabled && (
                     <>
-                      <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>标题打字速度 (ms)</Label>
                           <Input
@@ -1198,7 +1319,7 @@ const Admin = () => {
                     </>
                   )}
 
-                  <Button onClick={handleSaveTypewriterSettings} disabled={updateTypewriterSettings.isPending}>
+                  <Button onClick={handleSaveTypewriterSettings} disabled={updateTypewriterSettings.isPending} className="w-full sm:w-auto">
                     <Save className="w-4 h-4 mr-2" />
                     保存打字机设置
                   </Button>
@@ -1216,78 +1337,11 @@ const Admin = () => {
                     <Input
                       value={siteName}
                       onChange={(e) => setSiteName(e.target.value)}
-                      placeholder="墨迹随笔"
+                      placeholder="寒冬随笔"
                     />
                   </div>
 
-                  <div className="space-y-4">
-                    <Label className="flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4" />
-                      文字替换规则
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      设置全站文字自动替换规则，例如将"网站"替换为"博客"
-                    </p>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={applyPresetMoJiToHanDong}
-                      >
-                        一键：墨迹 → 寒冬
-                      </Button>
-                    </div>
-                    
-                    {textReplacements.length > 0 && (
-                      <div className="space-y-2">
-                        {textReplacements.map((r, i) => (
-                          <div key={i} className="flex items-center gap-2 bg-secondary/50 p-2 rounded-lg">
-                            <span className="text-sm flex-1 truncate">"{r.from}"</span>
-                            <span className="text-muted-foreground">→</span>
-                            <span className="text-sm flex-1 truncate">"{r.to}"</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeTextReplacement(i)}
-                              className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={newReplacementFrom}
-                        onChange={(e) => setNewReplacementFrom(e.target.value)}
-                        placeholder="原文字"
-                        className="flex-1"
-                      />
-                      <span className="text-muted-foreground">→</span>
-                      <Input
-                        value={newReplacementTo}
-                        onChange={(e) => setNewReplacementTo(e.target.value)}
-                        placeholder="替换为"
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addTextReplacement}
-                        disabled={!newReplacementFrom || !newReplacementTo}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Button onClick={handleSaveSiteSettings} disabled={updateSiteSettings.isPending}>
+                  <Button onClick={handleSaveSiteSettings} disabled={updateSiteSettings.isPending} className="w-full sm:w-auto">
                     <Save className="w-4 h-4 mr-2" />
                     保存网站设置
                   </Button>
@@ -1296,12 +1350,12 @@ const Admin = () => {
             </TabsContent>
 
             {/* Categories Tab */}
-            <TabsContent value="categories" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="font-serif text-2xl font-bold text-foreground">
+            <TabsContent value="categories" className="space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
                   分类管理 ({categories?.length || 0})
                 </h2>
-                <Button onClick={() => { setEditingCategory(null); setCategoryName(''); setCategorySlug(''); setCategoryDescription(''); setIsCategoryDialogOpen(true); }}>
+                <Button onClick={() => { setEditingCategory(null); setCategoryName(''); setCategorySlug(''); setCategoryDescription(''); setIsCategoryDialogOpen(true); }} className="w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   新建分类
                 </Button>
@@ -1312,21 +1366,22 @@ const Admin = () => {
                   暂无分类，点击上方按钮创建
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                   {categories?.map((cat) => (
-                    <div key={cat.id} className="blog-card flex items-center justify-between">
-                      <div>
+                    <div key={cat.id} className="blog-card flex items-center justify-between p-3 sm:p-4">
+                      <div className="min-w-0">
                         <p className="font-medium text-foreground">{cat.name}</p>
                         <p className="text-xs text-muted-foreground mt-1">/{cat.slug}</p>
                         {cat.description && (
-                          <p className="text-xs text-muted-foreground mt-1">{cat.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{cat.description}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => { setEditingCategory(cat); setCategoryName(cat.name); setCategorySlug(cat.slug); setCategoryDescription(cat.description || ''); setIsCategoryDialogOpen(true); }}
+                          className="h-8 w-8 p-0"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -1334,7 +1389,7 @@ const Admin = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeleteCategoryId(cat.id)}
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive h-8 w-8 p-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1350,7 +1405,7 @@ const Admin = () => {
 
       {/* Post Editor Dialog */}
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
           <DialogHeader>
             <DialogTitle className="font-serif">
               {editingPost ? "编辑文章" : "新建文章"}
@@ -1404,46 +1459,38 @@ const Admin = () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">标题 *</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  placeholder="文章标题"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slug">链接 *</Label>
-                <Input
-                  id="slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  placeholder="article-slug"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="title">标题 *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="文章标题"
+              />
             </div>
-            
-            <div className="grid md:grid-cols-2 gap-4">
+
+            <div className="space-y-2">
+              <Label htmlFor="slug">链接 *</Label>
+              <Input
+                id="slug"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="article-slug"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">分类</Label>
-                <select
+                <Input
                   id="category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  {categories?.map((cat) => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                  {!categories?.some(c => c.name === category) && category && (
-                    <option value={category}>{category}</option>
-                  )}
-                </select>
+                  placeholder="技术"
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="readTime">阅读时间</Label>
+                <Label htmlFor="readTime">阅读时长</Label>
                 <Input
                   id="readTime"
                   value={readTime}
@@ -1452,7 +1499,7 @@ const Admin = () => {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="excerpt">摘要 *</Label>
               <Textarea
@@ -1463,43 +1510,36 @@ const Admin = () => {
                 rows={2}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="content">正文 *</Label>
               <Textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="文章正文（支持 Markdown）..."
+                placeholder="使用 ## 添加标题，使用 - 添加列表项..."
                 rows={12}
                 className="font-mono text-sm"
               />
             </div>
-            
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="published"
-                  checked={published}
-                  onCheckedChange={setPublished}
-                />
-                <Label htmlFor="published">发布</Label>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsEditorOpen(false)}
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  取消
-                </Button>
-                <Button type="submit" disabled={createPost.isPending || updatePost.isPending}>
-                  <Save className="w-4 h-4 mr-2" />
-                  {createPost.isPending || updatePost.isPending ? "保存中..." : "保存"}
-                </Button>
-              </div>
+
+            <div className="flex items-center gap-2">
+              <Switch
+                id="published"
+                checked={published}
+                onCheckedChange={setPublished}
+              />
+              <Label htmlFor="published">发布文章</Label>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+              <Button type="button" variant="ghost" onClick={() => setIsEditorOpen(false)} className="w-full sm:w-auto">
+                取消
+              </Button>
+              <Button type="submit" disabled={createPost.isPending || updatePost.isPending} className="w-full sm:w-auto">
+                <Save className="w-4 h-4 mr-2" />
+                {createPost.isPending || updatePost.isPending ? "保存中..." : "保存"}
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -1507,7 +1547,7 @@ const Admin = () => {
 
       {/* Tag Dialog */}
       <Dialog open={isTagDialogOpen} onOpenChange={setIsTagDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4 sm:mx-auto">
           <DialogHeader>
             <DialogTitle>{editingTag ? "编辑标签" : "新建标签"}</DialogTitle>
           </DialogHeader>
@@ -1530,11 +1570,11 @@ const Admin = () => {
                 placeholder="tag-slug"
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setIsTagDialogOpen(false)}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsTagDialogOpen(false)} className="w-full sm:w-auto">
                 取消
               </Button>
-              <Button type="submit" disabled={createTag.isPending || updateTag.isPending}>
+              <Button type="submit" disabled={createTag.isPending || updateTag.isPending} className="w-full sm:w-auto">
                 {createTag.isPending || updateTag.isPending ? "保存中..." : "保存"}
               </Button>
             </div>
@@ -1542,18 +1582,60 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Bulk Edit Dialog */}
+      <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
+        <DialogContent className="max-w-md mx-4 sm:mx-auto">
+          <DialogHeader>
+            <DialogTitle>批量修改 ({selectedPostIds.length} 篇文章)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>修改分类</Label>
+              <Select value={bulkEditCategory} onValueChange={setBulkEditCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择分类（可选）" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">不修改</SelectItem>
+                  {postCategories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>修改阅读时长</Label>
+              <Input
+                value={bulkEditReadTime}
+                onChange={(e) => setBulkEditReadTime(e.target.value)}
+                placeholder="如：5分钟（可选）"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setBulkEditOpen(false)} className="w-full sm:w-auto">
+                取消
+              </Button>
+              <Button onClick={handleBulkEdit} disabled={bulkOperating} className="w-full sm:w-auto">
+                {bulkOperating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                确认修改
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Post Confirmation */}
       <AlertDialog open={!!deletePostId} onOpenChange={() => setDeletePostId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="mx-4 sm:mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
             <AlertDialogDescription>
               此操作无法撤销，文章将被永久删除。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground w-full sm:w-auto">
               删除
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1562,16 +1644,17 @@ const Admin = () => {
 
       {/* Bulk Delete Posts Confirmation */}
       <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="mx-4 sm:mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>确认批量删除</AlertDialogTitle>
             <AlertDialogDescription>
               此操作无法撤销，将永久删除所选 {selectedPostIds.length} 篇文章。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground w-full sm:w-auto" disabled={bulkOperating}>
+              {bulkOperating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               删除
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1580,16 +1663,16 @@ const Admin = () => {
 
       {/* Delete Comment Confirmation */}
       <AlertDialog open={!!deleteCommentId} onOpenChange={() => setDeleteCommentId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="mx-4 sm:mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除评论</AlertDialogTitle>
             <AlertDialogDescription>
               此操作无法撤销，评论将被永久删除。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteComment} className="bg-destructive text-destructive-foreground">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteComment} className="bg-destructive text-destructive-foreground w-full sm:w-auto">
               删除
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1598,16 +1681,16 @@ const Admin = () => {
 
       {/* Delete Tag Confirmation */}
       <AlertDialog open={!!deleteTagId} onOpenChange={() => setDeleteTagId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="mx-4 sm:mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除标签</AlertDialogTitle>
             <AlertDialogDescription>
               此操作无法撤销，标签将被永久删除。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTag} className="bg-destructive text-destructive-foreground">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTag} className="bg-destructive text-destructive-foreground w-full sm:w-auto">
               删除
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1616,7 +1699,7 @@ const Admin = () => {
 
       {/* Category Dialog */}
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4 sm:mx-auto">
           <DialogHeader>
             <DialogTitle>{editingCategory ? "编辑分类" : "新建分类"}</DialogTitle>
           </DialogHeader>
@@ -1649,11 +1732,11 @@ const Admin = () => {
                 rows={2}
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setIsCategoryDialogOpen(false)}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsCategoryDialogOpen(false)} className="w-full sm:w-auto">
                 取消
               </Button>
-              <Button type="submit" disabled={createCategory.isPending || updateCategory.isPending}>
+              <Button type="submit" disabled={createCategory.isPending || updateCategory.isPending} className="w-full sm:w-auto">
                 {createCategory.isPending || updateCategory.isPending ? "保存中..." : "保存"}
               </Button>
             </div>
@@ -1663,16 +1746,16 @@ const Admin = () => {
 
       {/* Delete Category Confirmation */}
       <AlertDialog open={!!deleteCategoryId} onOpenChange={() => setDeleteCategoryId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="mx-4 sm:mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除分类</AlertDialogTitle>
             <AlertDialogDescription>
               此操作无法撤销，分类将被永久删除。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive text-destructive-foreground">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive text-destructive-foreground w-full sm:w-auto">
               删除
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1687,13 +1770,13 @@ const StatCard = forwardRef<
   HTMLDivElement,
   { label: string; value: number; subLabel?: string; icon: React.ReactNode }
 >(({ label, value, subLabel, icon }, ref) => (
-  <div ref={ref} className="blog-card">
+  <div ref={ref} className="blog-card p-3 sm:p-4">
     <div className="flex items-center justify-between mb-2">
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-xs sm:text-sm text-muted-foreground">{label}</span>
       <div className="text-primary">{icon}</div>
     </div>
-    <p className="text-3xl font-bold text-foreground">{value.toLocaleString()}</p>
-    {subLabel && <p className="text-xs text-muted-foreground mt-1">{subLabel}</p>}
+    <p className="text-2xl sm:text-3xl font-bold text-foreground">{value.toLocaleString()}</p>
+    {subLabel && <p className="text-xs text-muted-foreground mt-1 truncate">{subLabel}</p>}
   </div>
 ));
 StatCard.displayName = 'StatCard';
@@ -1710,40 +1793,42 @@ const CommentCard = ({
   onDelete: () => void;
   isApproved?: boolean;
 }) => (
-  <div className="blog-card">
-    <div className="flex items-start justify-between gap-4">
+  <div className="blog-card p-3 sm:p-4">
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="font-medium text-foreground">{comment.author_name}</span>
           <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground text-xs">{comment.author_email}</span>
+          <span className="text-muted-foreground text-xs truncate">{comment.author_email}</span>
         </div>
-        <p className="text-foreground mt-2">{comment.content}</p>
-        <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+        <p className="text-foreground mt-2 text-sm sm:text-base">{comment.content}</p>
+        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-muted-foreground">
           <span>评论于：</span>
-          <Link to={`/blog/${comment.posts.slug}`} className="text-primary hover:underline">
+          <Link to={`/blog/${comment.posts.slug}`} className="text-primary hover:underline truncate max-w-[150px]">
             {comment.posts.title}
           </Link>
           <span>·</span>
           <span>{new Date(comment.created_at).toLocaleString('zh-CN')}</span>
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2 sm:gap-1 flex-shrink-0">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onApprove}
-          className={isApproved ? "text-amber-600" : "text-green-600"}
+          className={`flex-1 sm:flex-none h-8 ${isApproved ? "text-amber-600" : "text-green-600"}`}
         >
-          {isApproved ? <XCircle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+          {isApproved ? <XCircle className="w-4 h-4 sm:mr-0 mr-1" /> : <Check className="w-4 h-4 sm:mr-0 mr-1" />}
+          <span className="sm:hidden">{isApproved ? "取消" : "通过"}</span>
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onDelete}
-          className="text-destructive hover:text-destructive"
+          className="text-destructive hover:text-destructive flex-1 sm:flex-none h-8"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-4 h-4 sm:mr-0 mr-1" />
+          <span className="sm:hidden">删除</span>
         </Button>
       </div>
     </div>

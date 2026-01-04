@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 export interface HeroSettings {
   title: string;
@@ -12,7 +13,6 @@ export interface HeroSettings {
 
 export interface SiteSettings {
   name: string;
-  textReplacements: Array<{ from: string; to: string }>;
 }
 
 export interface TypewriterSettings {
@@ -23,7 +23,30 @@ export interface TypewriterSettings {
   loopDelay: number;
 }
 
+const useRealtimeSettings = (key: string) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`site-settings-${key}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'site_settings', filter: `key=eq.${key}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['site-settings', key] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [key, queryClient]);
+};
+
 export const useHeroSettings = () => {
+  useRealtimeSettings('hero');
+
   return useQuery({
     queryKey: ['site-settings', 'hero'],
     queryFn: async () => {
@@ -36,12 +59,13 @@ export const useHeroSettings = () => {
       if (error) throw error;
       return data.value as unknown as HeroSettings;
     },
-    refetchInterval: 5000, // 每5秒自动刷新
-    staleTime: 2000,
+    staleTime: 30000,
   });
 };
 
 export const useTypewriterSettings = () => {
+  useRealtimeSettings('typewriter');
+
   return useQuery({
     queryKey: ['site-settings', 'typewriter'],
     queryFn: async () => {
@@ -54,8 +78,7 @@ export const useTypewriterSettings = () => {
       if (error) throw error;
       return data.value as unknown as TypewriterSettings;
     },
-    refetchInterval: 5000,
-    staleTime: 2000,
+    staleTime: 30000,
   });
 };
 
@@ -96,6 +119,8 @@ export const useUpdateTypewriterSettings = () => {
 };
 
 export const useSiteSettings = () => {
+  useRealtimeSettings('site');
+
   return useQuery({
     queryKey: ['site-settings', 'site'],
     queryFn: async () => {
@@ -108,8 +133,7 @@ export const useSiteSettings = () => {
       if (error) throw error;
       return data.value as unknown as SiteSettings;
     },
-    refetchInterval: 5000,
-    staleTime: 2000,
+    staleTime: 30000,
   });
 };
 

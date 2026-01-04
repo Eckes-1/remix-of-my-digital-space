@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 export interface DashboardStats {
   totalPosts: number;
@@ -14,24 +15,52 @@ export interface DashboardStats {
 }
 
 export const useDashboardStats = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const postsChannel = supabase
+      .channel('dashboard-posts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      })
+      .subscribe();
+
+    const commentsChannel = supabase
+      .channel('dashboard-comments')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      })
+      .subscribe();
+
+    const tagsChannel = supabase
+      .channel('dashboard-tags')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tags' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(tagsChannel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async (): Promise<DashboardStats> => {
-      // Fetch posts stats
       const { data: posts, error: postsError } = await supabase
         .from('posts')
         .select('id, published, view_count, like_count');
       
       if (postsError) throw postsError;
 
-      // Fetch comments stats
       const { data: comments, error: commentsError } = await supabase
         .from('comments')
         .select('id, approved');
       
       if (commentsError) throw commentsError;
 
-      // Fetch tags count
       const { count: tagsCount, error: tagsError } = await supabase
         .from('tags')
         .select('*', { count: 'exact', head: true });
@@ -57,7 +86,6 @@ export const useDashboardStats = () => {
         totalTags: tagsCount || 0,
       };
     },
-    refetchInterval: 5000,
-    staleTime: 2000,
+    staleTime: 30000,
   });
 };
