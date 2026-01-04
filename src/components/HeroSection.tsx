@@ -1,14 +1,36 @@
 import { ArrowDown } from "lucide-react";
 import TypewriterText from "./TypewriterText";
-import { useHeroSettings, useTypewriterSettings } from "@/hooks/useSiteSettings";
+import { useHeroSettings, useTypewriterSettings, useSiteSettings } from "@/hooks/useSiteSettings";
+import { useMemo } from "react";
 
 const HeroSection = () => {
   const { data: heroSettings } = useHeroSettings();
   const { data: typewriterSettings } = useTypewriterSettings();
+  const { data: siteSettings } = useSiteSettings();
 
-  const title = heroSettings?.title || "墨迹随笔";
-  const description = heroSettings?.description || "在这里，我分享关于技术、生活与思考的点滴。每一篇文章，都是一段旅程的记录。";
-  const badge = heroSettings?.badge || "欢迎来到我的博客";
+  // Text replacement function
+  const replaceText = useMemo(() => {
+    return (text: string): string => {
+      if (!siteSettings?.textReplacements?.length) return text;
+      
+      let result = text;
+      for (const replacement of siteSettings.textReplacements) {
+        if (replacement.from && replacement.to) {
+          result = result.split(replacement.from).join(replacement.to);
+        }
+      }
+      return result;
+    };
+  }, [siteSettings?.textReplacements]);
+
+  const rawTitle = heroSettings?.title || "墨迹随笔";
+  const rawDescription = heroSettings?.description || "在这里，我分享关于技术、生活与思考的点滴。每一篇文章，都是一段旅程的记录。";
+  const rawBadge = heroSettings?.badge || "欢迎来到我的博客";
+  
+  const title = replaceText(rawTitle);
+  const description = replaceText(rawDescription);
+  const badge = replaceText(rawBadge);
+  
   const backgroundImage = heroSettings?.backgroundImage;
   const backgroundType = heroSettings?.backgroundType || 'gradient';
   const blur = heroSettings?.blur ?? 70;
