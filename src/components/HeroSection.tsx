@@ -23,7 +23,7 @@ const HeroSection = () => {
     };
   }, [siteSettings?.textReplacements]);
 
-  const rawTitle = heroSettings?.title || "墨迹随笔";
+  const rawTitle = heroSettings?.title || "寒冬随笔";
   const rawDescription = heroSettings?.description || "在这里，我分享关于技术、生活与思考的点滴。每一篇文章，都是一段旅程的记录。";
   const rawBadge = heroSettings?.badge || "欢迎来到我的博客";
   

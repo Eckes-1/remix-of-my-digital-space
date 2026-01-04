@@ -159,3 +159,33 @@ export const useDeletePost = () => {
     },
   });
 };
+
+export const useBulkUpdatePosts = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<Post> }) => {
+      if (!ids.length) return;
+      const { error } = await supabase.from('posts').update(updates).in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+};
+
+export const useBulkDeletePosts = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ids }: { ids: string[] }) => {
+      if (!ids.length) return;
+      const { error } = await supabase.from('posts').delete().in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+};
