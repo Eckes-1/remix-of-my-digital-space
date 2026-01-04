@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePosts, useCreatePost, useUpdatePost, useDeletePost, Post } from '@/hooks/usePosts';
 import { useAllComments, useApproveComment, useDeleteComment, Comment } from '@/hooks/useComments';
 import { useTagsManagement, useCreateTag, useUpdateTag, useDeleteTag, Tag } from '@/hooks/useTagsManagement';
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, Category } from '@/hooks/useCategories';
 import { useDashboardStats } from '@/hooks/useStats';
-import { useHeroSettings, useTypewriterSettings, useUpdateHeroSettings, useUpdateTypewriterSettings, HeroSettings, TypewriterSettings } from '@/hooks/useSiteSettings';
+import { useHeroSettings, useTypewriterSettings, useUpdateHeroSettings, useUpdateTypewriterSettings, useSiteSettings, useUpdateSiteSettings, HeroSettings, TypewriterSettings, SiteSettings } from '@/hooks/useSiteSettings';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +36,11 @@ import {
   Tag as TagIcon,
   Settings,
   Heart,
-  TrendingUp
+  TrendingUp,
+  FolderOpen,
+  Type,
+  Palette,
+  RefreshCw
 } from 'lucide-react';
 import {
   Dialog,
@@ -62,6 +68,8 @@ const Admin = () => {
   const { data: stats } = useDashboardStats();
   const { data: heroSettings } = useHeroSettings();
   const { data: typewriterSettings } = useTypewriterSettings();
+  const { data: siteSettings } = useSiteSettings();
+  const { data: categories } = useCategories();
   
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
@@ -73,6 +81,10 @@ const Admin = () => {
   const deleteTagMutation = useDeleteTag();
   const updateHeroSettings = useUpdateHeroSettings();
   const updateTypewriterSettings = useUpdateTypewriterSettings();
+  const updateSiteSettings = useUpdateSiteSettings();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategoryMutation = useDeleteCategory();
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
@@ -98,12 +110,21 @@ const Admin = () => {
   const [tagName, setTagName] = useState('');
   const [tagSlug, setTagSlug] = useState('');
 
+  // Category form state
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryName, setCategoryName] = useState('');
+  const [categorySlug, setCategorySlug] = useState('');
+  const [categoryDescription, setCategoryDescription] = useState('');
+  const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
+
   // Settings form state
   const [heroTitle, setHeroTitle] = useState('');
   const [heroDescription, setHeroDescription] = useState('');
   const [heroBadge, setHeroBadge] = useState('');
   const [heroBackgroundImage, setHeroBackgroundImage] = useState<string | null>(null);
   const [heroBackgroundType, setHeroBackgroundType] = useState<'gradient' | 'image'>('gradient');
+  const [heroBlur, setHeroBlur] = useState(70);
   const [typewriterEnabled, setTypewriterEnabled] = useState(true);
   const [typewriterTitleSpeed, setTypewriterTitleSpeed] = useState(200);
   const [typewriterDescSpeed, setTypewriterDescSpeed] = useState(80);
@@ -111,6 +132,25 @@ const Admin = () => {
   const [typewriterLoopDelay, setTypewriterLoopDelay] = useState(3000);
   const [uploadingHeroBg, setUploadingHeroBg] = useState(false);
   const heroBgInputRef = useRef<HTMLInputElement>(null);
+
+  // Site settings state
+  const [siteName, setSiteName] = useState('墨迹随笔');
+  const [textReplacements, setTextReplacements] = useState<Array<{ from: string; to: string }>>([]);
+  const [newReplacementFrom, setNewReplacementFrom] = useState('');
+  const [newReplacementTo, setNewReplacementTo] = useState('');
+
+  // Auto-save
+  const draftData = useMemo(() => ({
+    title,
+    slug,
+    excerpt,
+    content,
+    category,
+    readTime,
+    coverImage,
+  }), [title, slug, excerpt, content, category, readTime, coverImage]);
+  
+  const { loadDraft, clearDraft } = useAutoSave(editingPost?.id || null, draftData);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -140,8 +180,16 @@ const Admin = () => {
       setHeroBadge(heroSettings.badge);
       setHeroBackgroundImage(heroSettings.backgroundImage);
       setHeroBackgroundType(heroSettings.backgroundType);
+      setHeroBlur(heroSettings.blur ?? 70);
     }
   }, [heroSettings]);
+
+  useEffect(() => {
+    if (siteSettings) {
+      setSiteName(siteSettings.name);
+      setTextReplacements(siteSettings.textReplacements || []);
+    }
+  }, [siteSettings]);
 
   useEffect(() => {
     if (typewriterSettings) {
@@ -396,11 +444,84 @@ const Admin = () => {
         badge: heroBadge,
         backgroundImage: heroBackgroundImage,
         backgroundType: heroBackgroundType,
+        blur: heroBlur,
       });
       toast.success("Hero设置已保存");
     } catch (error) {
       toast.error("保存失败");
     }
+  };
+
+  // Category handlers
+  const handleCategoryNameChange = (value: string) => {
+    setCategoryName(value);
+    if (!editingCategory) {
+      setCategorySlug(generateSlug(value));
+    }
+  };
+
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryName || !categorySlug) {
+      toast.error("请填写所有字段");
+      return;
+    }
+
+    try {
+      if (editingCategory) {
+        await updateCategory.mutateAsync({ id: editingCategory.id, name: categoryName, slug: categorySlug, description: categoryDescription });
+        toast.success("分类已更新");
+      } else {
+        await createCategory.mutateAsync({ name: categoryName, slug: categorySlug, description: categoryDescription });
+        toast.success("分类已创建");
+      }
+      setIsCategoryDialogOpen(false);
+      setEditingCategory(null);
+      setCategoryName('');
+      setCategorySlug('');
+      setCategoryDescription('');
+    } catch (error: any) {
+      if (error.message?.includes('duplicate')) {
+        toast.error("分类已存在");
+      } else {
+        toast.error("保存失败");
+      }
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!deleteCategoryId) return;
+    try {
+      await deleteCategoryMutation.mutateAsync(deleteCategoryId);
+      toast.success("分类已删除");
+      setDeleteCategoryId(null);
+    } catch (error) {
+      toast.error("删除失败");
+    }
+  };
+
+  const handleSaveSiteSettings = async () => {
+    try {
+      await updateSiteSettings.mutateAsync({
+        name: siteName,
+        textReplacements,
+      });
+      toast.success("网站设置已保存");
+    } catch (error) {
+      toast.error("保存失败");
+    }
+  };
+
+  const addTextReplacement = () => {
+    if (newReplacementFrom && newReplacementTo) {
+      setTextReplacements([...textReplacements, { from: newReplacementFrom, to: newReplacementTo }]);
+      setNewReplacementFrom('');
+      setNewReplacementTo('');
+    }
+  };
+
+  const removeTextReplacement = (index: number) => {
+    setTextReplacements(textReplacements.filter((_, i) => i !== index));
   };
 
   const handleSaveTypewriterSettings = async () => {
@@ -493,7 +614,7 @@ const Admin = () => {
           </div>
         ) : (
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-5">
+            <TabsList className="grid w-full max-w-3xl grid-cols-6">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <LayoutDashboard className="w-4 h-4" />
                 <span className="hidden sm:inline">仪表盘</span>
@@ -514,6 +635,10 @@ const Admin = () => {
               <TabsTrigger value="tags" className="flex items-center gap-2">
                 <TagIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">标签</span>
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4" />
+                <span className="hidden sm:inline">分类</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
@@ -820,50 +945,65 @@ const Admin = () => {
                   </div>
 
                   {heroBackgroundType === 'image' && (
-                    <div className="space-y-2">
-                      <Label>背景图片</Label>
-                      <div className="flex items-start gap-4">
-                        {heroBackgroundImage ? (
-                          <div className="relative group">
-                            <img 
-                              src={heroBackgroundImage} 
-                              alt="Background" 
-                              className="w-40 h-24 object-cover rounded-lg border"
-                            />
+                    <>
+                      <div className="space-y-2">
+                        <Label>背景图片</Label>
+                        <div className="flex items-start gap-4">
+                          {heroBackgroundImage ? (
+                            <div className="relative group">
+                              <img 
+                                src={heroBackgroundImage} 
+                                alt="Background" 
+                                className="w-40 h-24 object-cover rounded-lg border"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setHeroBackgroundImage(null)}
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               type="button"
-                              onClick={() => setHeroBackgroundImage(null)}
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => heroBgInputRef.current?.click()}
+                              disabled={uploadingHeroBg}
+                              className="w-40 h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                             >
-                              <X className="w-3 h-3" />
+                              {uploadingHeroBg ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Upload className="w-5 h-5" />
+                                  <span className="text-xs">上传背景</span>
+                                </>
+                              )}
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => heroBgInputRef.current?.click()}
-                            disabled={uploadingHeroBg}
-                            className="w-40 h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-                          >
-                            {uploadingHeroBg ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                              <>
-                                <Upload className="w-5 h-5" />
-                                <span className="text-xs">上传背景</span>
-                              </>
-                            )}
-                          </button>
-                        )}
-                        <input
-                          ref={heroBgInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleHeroBgUpload}
-                        />
+                          )}
+                          <input
+                            ref={heroBgInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleHeroBgUpload}
+                          />
+                        </div>
                       </div>
-                    </div>
+
+                      <div className="space-y-2">
+                        <Label>背景模糊度: {heroBlur}%</Label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={heroBlur}
+                          onChange={(e) => setHeroBlur(Number(e.target.value))}
+                          className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                        />
+                        <p className="text-xs text-muted-foreground">0% = 完全透明，100% = 完全不透明</p>
+                      </div>
+                    </>
                   )}
 
                   <Button onClick={handleSaveHeroSettings} disabled={updateHeroSettings.isPending}>
@@ -939,7 +1079,135 @@ const Admin = () => {
                     保存打字机设置
                   </Button>
                 </div>
+
+                {/* Site Settings */}
+                <div className="blog-card space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Palette className="w-5 h-5" />
+                    网站基本设置
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    <Label>网站名称</Label>
+                    <Input
+                      value={siteName}
+                      onChange={(e) => setSiteName(e.target.value)}
+                      placeholder="墨迹随笔"
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4" />
+                      文字替换规则
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      设置全站文字自动替换规则，例如将"网站"替换为"博客"
+                    </p>
+                    
+                    {textReplacements.length > 0 && (
+                      <div className="space-y-2">
+                        {textReplacements.map((r, i) => (
+                          <div key={i} className="flex items-center gap-2 bg-secondary/50 p-2 rounded-lg">
+                            <span className="text-sm flex-1 truncate">"{r.from}"</span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="text-sm flex-1 truncate">"{r.to}"</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeTextReplacement(i)}
+                              className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={newReplacementFrom}
+                        onChange={(e) => setNewReplacementFrom(e.target.value)}
+                        placeholder="原文字"
+                        className="flex-1"
+                      />
+                      <span className="text-muted-foreground">→</span>
+                      <Input
+                        value={newReplacementTo}
+                        onChange={(e) => setNewReplacementTo(e.target.value)}
+                        placeholder="替换为"
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addTextReplacement}
+                        disabled={!newReplacementFrom || !newReplacementTo}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button onClick={handleSaveSiteSettings} disabled={updateSiteSettings.isPending}>
+                    <Save className="w-4 h-4 mr-2" />
+                    保存网站设置
+                  </Button>
+                </div>
               </div>
+            </TabsContent>
+
+            {/* Categories Tab */}
+            <TabsContent value="categories" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="font-serif text-2xl font-bold text-foreground">
+                  分类管理 ({categories?.length || 0})
+                </h2>
+                <Button onClick={() => { setEditingCategory(null); setCategoryName(''); setCategorySlug(''); setCategoryDescription(''); setIsCategoryDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  新建分类
+                </Button>
+              </div>
+
+              {!categories?.length ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  暂无分类，点击上方按钮创建
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {categories?.map((cat) => (
+                    <div key={cat.id} className="blog-card flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-foreground">{cat.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">/{cat.slug}</p>
+                        {cat.description && (
+                          <p className="text-xs text-muted-foreground mt-1">{cat.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setEditingCategory(cat); setCategoryName(cat.name); setCategorySlug(cat.slug); setCategoryDescription(cat.description || ''); setIsCategoryDialogOpen(true); }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteCategoryId(cat.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         )}
@@ -1025,12 +1293,19 @@ const Admin = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">分类</Label>
-                <Input
+                <select
                   id="category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  placeholder="技术"
-                />
+                  className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  {categories?.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                  {!categories?.some(c => c.name === category) && category && (
+                    <option value={category}>{category}</option>
+                  )}
+                </select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="readTime">阅读时间</Label>
@@ -1180,6 +1455,71 @@ const Admin = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteTag} className="bg-destructive text-destructive-foreground">
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Category Dialog */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingCategory ? "编辑分类" : "新建分类"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCategorySubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="categoryName">分类名称</Label>
+              <Input
+                id="categoryName"
+                value={categoryName}
+                onChange={(e) => handleCategoryNameChange(e.target.value)}
+                placeholder="分类名称"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="categorySlug">分类链接</Label>
+              <Input
+                id="categorySlug"
+                value={categorySlug}
+                onChange={(e) => setCategorySlug(e.target.value)}
+                placeholder="category-slug"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="categoryDescription">分类描述（可选）</Label>
+              <Textarea
+                id="categoryDescription"
+                value={categoryDescription}
+                onChange={(e) => setCategoryDescription(e.target.value)}
+                placeholder="分类描述..."
+                rows={2}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsCategoryDialogOpen(false)}>
+                取消
+              </Button>
+              <Button type="submit" disabled={createCategory.isPending || updateCategory.isPending}>
+                {createCategory.isPending || updateCategory.isPending ? "保存中..." : "保存"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Category Confirmation */}
+      <AlertDialog open={!!deleteCategoryId} onOpenChange={() => setDeleteCategoryId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除分类</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作无法撤销，分类将被永久删除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive text-destructive-foreground">
               删除
             </AlertDialogAction>
           </AlertDialogFooter>

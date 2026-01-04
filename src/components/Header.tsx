@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Settings, Menu, X, Home, BookOpen, Archive, User } from "lucide-react";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
@@ -8,7 +9,10 @@ import { cn } from "@/lib/utils";
 const Header = () => {
   const location = useLocation();
   const { user, isAdmin } = useAuth();
+  const { data: siteSettings } = useSiteSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const siteName = siteSettings?.name || "墨迹随笔";
 
   const navLinks = [
     { path: "/", label: "首页", icon: Home },
@@ -27,10 +31,10 @@ const Header = () => {
             className="group flex items-center gap-3"
           >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-              <span className="font-serif text-primary-foreground font-bold text-lg">墨</span>
+              <span className="font-serif text-primary-foreground font-bold text-lg">{siteName.charAt(0)}</span>
             </div>
             <span className="hidden sm:block font-serif text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
-              墨迹随笔
+              {siteName}
             </span>
           </Link>
           

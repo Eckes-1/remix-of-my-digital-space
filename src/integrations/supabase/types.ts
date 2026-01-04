@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           approved: boolean
@@ -120,6 +144,7 @@ export type Database = {
           content: string
           cover_image: string | null
           created_at: string
+          draft_content: string | null
           excerpt: string
           id: string
           like_count: number
@@ -136,6 +161,7 @@ export type Database = {
           content: string
           cover_image?: string | null
           created_at?: string
+          draft_content?: string | null
           excerpt: string
           id?: string
           like_count?: number
@@ -152,6 +178,7 @@ export type Database = {
           content?: string
           cover_image?: string | null
           created_at?: string
+          draft_content?: string | null
           excerpt?: string
           id?: string
           like_count?: number
