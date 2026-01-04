@@ -9,6 +9,7 @@ import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
 import TableOfContents from "@/components/TableOfContents";
+import RelatedPosts from "@/components/RelatedPosts";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
@@ -177,6 +178,9 @@ const BlogPost = () => {
                 <LikeButton postId={post.id} />
                 <ShareButton title={post.title} />
               </div>
+
+              {/* Related Posts */}
+              <RelatedPosts currentPostId={post.id} category={post.category} />
               
               {/* Comments */}
               <CommentSection postId={post.id} />

@@ -1,23 +1,85 @@
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 const ThemeToggle = () => {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const handleToggle = () => {
-    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+    if (isAnimating) return;
+    
+    setIsAnimating(true);
+    
+    const button = buttonRef.current;
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      
+      // Create ripple overlay
+      const ripple = document.createElement('div');
+      const isDark = resolvedTheme === 'dark';
+      
+      ripple.style.cssText = `
+        position: fixed;
+        left: ${x}px;
+        top: ${y}px;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: ${isDark ? 'hsl(40, 30%, 97%)' : 'hsl(25, 20%, 10%)'};
+        transform: translate(-50%, -50%);
+        z-index: 9998;
+        pointer-events: none;
+      `;
+      document.body.appendChild(ripple);
+      
+      // Calculate size to cover entire viewport
+      const maxSize = Math.max(window.innerWidth, window.innerHeight) * 2.5;
+      
+      // Animate ripple expansion
+      ripple.animate([
+        { width: '0px', height: '0px', opacity: 1 },
+        { width: `${maxSize}px`, height: `${maxSize}px`, opacity: 1 }
+      ], {
+        duration: 500,
+        easing: 'ease-out',
+        fill: 'forwards'
+      });
+      
+      // Switch theme at the right moment
+      setTimeout(() => {
+        setTheme(isDark ? 'light' : 'dark');
+      }, 250);
+      
+      // Fade out and remove ripple
+      setTimeout(() => {
+        ripple.animate([
+          { opacity: 1 },
+          { opacity: 0 }
+        ], {
+          duration: 300,
+          easing: 'ease-out',
+          fill: 'forwards'
+        }).onfinish = () => {
+          ripple.remove();
+          setIsAnimating(false);
+        };
+      }, 500);
+    }
   };
 
   if (!mounted) {
     return (
-      <button className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-        <div className="w-5 h-5 rounded-full bg-muted animate-pulse" />
+      <button className="w-14 h-8 rounded-full bg-secondary flex items-center justify-center">
+        <div className="w-6 h-6 rounded-full bg-muted animate-pulse" />
       </button>
     );
   }
@@ -26,30 +88,35 @@ const ThemeToggle = () => {
 
   return (
     <button
+      ref={buttonRef}
       onClick={handleToggle}
+      disabled={isAnimating}
       className={cn(
-        "relative w-14 h-8 rounded-full transition-all duration-500 p-1",
-        isDark ? "bg-indigo-900" : "bg-amber-100"
+        "relative w-14 h-8 rounded-full transition-colors duration-500 p-1",
+        isDark ? "bg-indigo-950" : "bg-amber-100"
       )}
+      style={{ zIndex: 9999 }}
       aria-label={isDark ? "切换到浅色模式" : "切换到深色模式"}
     >
       {/* Track decoration */}
-      <div className="absolute inset-0 rounded-full overflow-hidden">
+      <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
         {/* Stars for dark mode */}
-        {isDark && (
-          <>
-            <span className="absolute top-1.5 left-2 w-1 h-1 bg-white/60 rounded-full animate-pulse" />
-            <span className="absolute top-3 left-4 w-0.5 h-0.5 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-            <span className="absolute bottom-2 left-3 w-0.5 h-0.5 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
-          </>
-        )}
+        <div className={cn(
+          "absolute inset-0 transition-opacity duration-500",
+          isDark ? "opacity-100" : "opacity-0"
+        )}>
+          <span className="absolute top-1.5 left-2 w-1 h-1 bg-white/60 rounded-full animate-pulse" />
+          <span className="absolute top-3 left-4 w-0.5 h-0.5 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+          <span className="absolute bottom-2 left-3 w-0.5 h-0.5 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
+        </div>
         {/* Clouds for light mode */}
-        {!isDark && (
-          <>
-            <span className="absolute top-1 right-2 w-3 h-1.5 bg-white/70 rounded-full" />
-            <span className="absolute bottom-1.5 right-4 w-2 h-1 bg-white/50 rounded-full" />
-          </>
-        )}
+        <div className={cn(
+          "absolute inset-0 transition-opacity duration-500",
+          isDark ? "opacity-0" : "opacity-100"
+        )}>
+          <span className="absolute top-1 right-2 w-3 h-1.5 bg-white/70 rounded-full" />
+          <span className="absolute bottom-1.5 right-4 w-2 h-1 bg-white/50 rounded-full" />
+        </div>
       </div>
 
       {/* Toggle circle with icon */}
@@ -61,20 +128,23 @@ const ThemeToggle = () => {
             : "translate-x-0 bg-amber-400"
         )}
       >
-        {/* Sun rays / Moon craters */}
-        {isDark ? (
-          // Moon
-          <div className="relative w-full h-full">
-            <div className="absolute inset-0 rounded-full bg-indigo-200" />
-            <div className="absolute top-1 left-1.5 w-1.5 h-1.5 rounded-full bg-indigo-300/50" />
-            <div className="absolute bottom-1.5 right-1 w-1 h-1 rounded-full bg-indigo-300/40" />
-          </div>
-        ) : (
-          // Sun
-          <div className="w-4 h-4 rounded-full bg-amber-500 relative">
-            <div className="absolute inset-0 rounded-full animate-ping bg-amber-400/30" style={{ animationDuration: '2s' }} />
-          </div>
-        )}
+        {/* Moon */}
+        <div className={cn(
+          "absolute inset-0 rounded-full transition-all duration-500",
+          isDark ? "opacity-100 scale-100" : "opacity-0 scale-50"
+        )}>
+          <div className="absolute inset-0 rounded-full bg-indigo-200" />
+          <div className="absolute top-1 left-1.5 w-1.5 h-1.5 rounded-full bg-indigo-300/50" />
+          <div className="absolute bottom-1.5 right-1 w-1 h-1 rounded-full bg-indigo-300/40" />
+        </div>
+        
+        {/* Sun */}
+        <div className={cn(
+          "absolute inset-1 rounded-full bg-amber-500 transition-all duration-500",
+          isDark ? "opacity-0 scale-50" : "opacity-100 scale-100"
+        )}>
+          <div className="absolute inset-0 rounded-full animate-ping bg-amber-400/30" style={{ animationDuration: '2s' }} />
+        </div>
       </div>
     </button>
   );
