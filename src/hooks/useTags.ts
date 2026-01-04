@@ -20,5 +20,7 @@ export const useTags = () => {
       if (error) throw error;
       return data as Tag[];
     },
+    refetchInterval: 5000,
+    staleTime: 2000,
   });
 };

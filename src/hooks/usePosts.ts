@@ -32,6 +32,8 @@ export const usePosts = (published: boolean = true) => {
       if (error) throw error;
       return data as Post[];
     },
+    refetchInterval: 5000,
+    staleTime: 2000,
   });
 };
 

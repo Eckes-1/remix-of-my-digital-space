@@ -57,5 +57,7 @@ export const useDashboardStats = () => {
         totalTags: tagsCount || 0,
       };
     },
+    refetchInterval: 5000,
+    staleTime: 2000,
   });
 };

@@ -21,6 +21,8 @@ export const useCategories = () => {
       if (error) throw error;
       return data as Category[];
     },
+    refetchInterval: 5000,
+    staleTime: 2000,
   });
 };
 

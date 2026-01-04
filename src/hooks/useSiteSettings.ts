@@ -36,6 +36,8 @@ export const useHeroSettings = () => {
       if (error) throw error;
       return data.value as unknown as HeroSettings;
     },
+    refetchInterval: 5000, // 每5秒自动刷新
+    staleTime: 2000,
   });
 };
 
@@ -52,6 +54,8 @@ export const useTypewriterSettings = () => {
       if (error) throw error;
       return data.value as unknown as TypewriterSettings;
     },
+    refetchInterval: 5000,
+    staleTime: 2000,
   });
 };
 
@@ -104,6 +108,8 @@ export const useSiteSettings = () => {
       if (error) throw error;
       return data.value as unknown as SiteSettings;
     },
+    refetchInterval: 5000,
+    staleTime: 2000,
   });
 };
 
