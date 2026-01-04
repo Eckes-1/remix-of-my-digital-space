@@ -14,11 +14,13 @@ import { usePostVersions, useCreatePostVersion, useRestorePostVersion, PostVersi
 import { useSchedulePost, useCancelSchedule, formatDateTimeLocal, isScheduled } from '@/hooks/useScheduledPublish';
 import { useAdminLogs, useActionLogger, getActionLabel, getEntityLabel, AdminLog, ActionType, EntityType } from '@/hooks/useAdminLogs';
 import { usePostTags, useUpdatePostTags } from '@/hooks/usePostTags';
+import { useAuthors } from '@/hooks/useAuthors';
 import { supabase } from '@/integrations/supabase/client';
 import { exportToJSON, exportToCSV } from '@/utils/exportData';
 import { createBackup, downloadBackup, restoreBackup, parseBackupFile } from '@/utils/backupRestore';
 import { parseImportFile, ImportPost } from '@/utils/importPosts';
 import ArticlePreview from '@/components/ArticlePreview';
+import AuthorManager from '@/components/AuthorManager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -103,6 +105,7 @@ const Admin = () => {
   const { data: typewriterSettings } = useTypewriterSettings();
   const { data: siteSettings } = useSiteSettings();
   const { data: categories } = useCategories();
+  const { data: authors } = useAuthors();
   
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
@@ -234,6 +237,7 @@ const Admin = () => {
 
   // Post tags state
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedAuthorId, setSelectedAuthorId] = useState<string | null>(null);
   const updatePostTags = useUpdatePostTags();
   const { data: currentPostTags } = usePostTags(editingPost?.id || null);
 
@@ -314,9 +318,11 @@ const Admin = () => {
       setReadTime(editingPost.read_time);
       setPublished(editingPost.published);
       setCoverImage(editingPost.cover_image);
+      setSelectedAuthorId((editingPost as any).author_id || null);
     } else {
       resetForm();
       setSelectedTagIds([]);
+      setSelectedAuthorId(null);
     }
   }, [editingPost]);
 
@@ -490,6 +496,7 @@ const Admin = () => {
           published,
           published_at: published ? new Date().toISOString() : null,
           cover_image: coverImage,
+          author_id: selectedAuthorId,
         });
         
         // Update post tags
@@ -521,7 +528,8 @@ const Admin = () => {
           published_at: published ? new Date().toISOString() : null,
           cover_image: coverImage,
           view_count: 0,
-        });
+          author_id: selectedAuthorId,
+        } as any);
         
         // Update post tags for new post
         if (result && selectedTagIds.length > 0) {
@@ -845,6 +853,30 @@ const Admin = () => {
         postTitle: comment?.posts.title,
         timestamp: new Date().toISOString(),
       });
+      
+      // Send email notification to commenter
+      if (comment?.author_email) {
+        try {
+          await supabase.functions.invoke('send-comment-notification', {
+            body: {
+              commenterEmail: comment.author_email,
+              commenterName: comment.author_name,
+              postTitle: comment.posts.title,
+              postSlug: comment.posts.slug,
+              adminReply: replyContent.trim(),
+              originalComment: comment.content,
+            },
+          });
+          logAction('update', 'comment', `发送邮件通知: ${comment.author_email}`, replyingCommentId, {
+            email: comment.author_email,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (emailError) {
+          console.error('Failed to send notification email:', emailError);
+          // Don't fail the reply if email fails
+        }
+      }
+      
       toast.success('回复成功');
       setReplyingCommentId(null);
       setReplyContent('');
@@ -2423,6 +2455,11 @@ const Admin = () => {
                     查看 RSS Feed
                   </Button>
                 </div>
+
+                {/* Author Management */}
+                <div className="blog-card">
+                  <AuthorManager onLog={logAction} />
+                </div>
               </div>
             </TabsContent>
 
@@ -2679,6 +2716,22 @@ const Admin = () => {
                     placeholder="5分钟"
                   />
                 </div>
+              </div>
+
+              {/* Author selector */}
+              <div className="space-y-2">
+                <Label>作者</Label>
+                <Select value={selectedAuthorId || ''} onValueChange={(v) => setSelectedAuthorId(v || null)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择作者（可选）" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">无作者</SelectItem>
+                    {authors?.map(author => (
+                      <SelectItem key={author.id} value={author.id}>{author.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

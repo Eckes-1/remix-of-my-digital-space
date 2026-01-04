@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Music, X, ChevronUp, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Music, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Track {
@@ -8,10 +7,8 @@ interface Track {
   title: string;
   artist: string;
   url: string;
-  cover?: string;
 }
 
-// Default demo tracks (you can add more or load from database)
 const defaultTracks: Track[] = [
   {
     id: '1',
@@ -124,74 +121,100 @@ const MusicPlayer = () => {
     setShowPlaylist(false);
   };
 
+  const progress = duration ? (currentTime / duration) * 100 : 0;
+
   return (
     <>
       <audio ref={audioRef} src={currentTrack.url} preload="metadata" />
       
-      {/* Floating player button when collapsed */}
-      <div
-        className={cn(
-          "fixed z-50 transition-all duration-300",
-          isExpanded 
-            ? "bottom-4 right-4 sm:bottom-6 sm:right-6" 
-            : "bottom-4 right-4"
-        )}
-      >
+      {/* Floating player - positioned at bottom-left to avoid back-to-top button */}
+      <div className="fixed bottom-4 left-4 z-40">
         {!isExpanded ? (
-          <Button
-            size="lg"
+          /* Collapsed state - vinyl disc style */
+          <button
             onClick={() => setIsExpanded(true)}
             className={cn(
-              "rounded-full w-14 h-14 shadow-lg",
-              isPlaying && "animate-pulse"
+              "relative w-14 h-14 rounded-full bg-gradient-to-br from-zinc-900 to-zinc-700 shadow-xl",
+              "flex items-center justify-center group transition-transform hover:scale-110",
+              "border-2 border-zinc-600",
+              isPlaying && "animate-spin-slow"
             )}
           >
-            <Music className="w-6 h-6" />
-          </Button>
+            {/* Vinyl grooves */}
+            <div className="absolute inset-2 rounded-full border border-zinc-500/30" />
+            <div className="absolute inset-3 rounded-full border border-zinc-500/20" />
+            <div className="absolute inset-4 rounded-full border border-zinc-500/10" />
+            {/* Center label */}
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+              <Music className="w-3 h-3 text-primary-foreground" />
+            </div>
+            {/* Playing indicator */}
+            {isPlaying && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+            )}
+          </button>
         ) : (
-          <div className="bg-card/95 backdrop-blur-lg border rounded-2xl shadow-2xl w-[calc(100vw-2rem)] sm:w-80 overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b bg-muted/30">
-              <div className="flex items-center gap-2">
-                <Music className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">音乐播放器</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
+          /* Expanded state - modern compact player */
+          <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden w-72 border border-zinc-700/50">
+            {/* Header with album art simulation */}
+            <div className="relative h-20 bg-gradient-to-br from-primary/30 via-purple-500/20 to-pink-500/30 overflow-hidden">
+              {/* Animated background */}
+              <div className={cn(
+                "absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_60%)]",
+                isPlaying && "animate-pulse"
+              )} />
+              
+              {/* Close & playlist buttons */}
+              <div className="absolute top-2 right-2 flex gap-1">
+                <button
                   onClick={() => setShowPlaylist(!showPlaylist)}
+                  className="p-1.5 rounded-full bg-black/30 hover:bg-black/50 transition-colors"
                 >
-                  {showPlaylist ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
+                  <List className="w-4 h-4 text-white" />
+                </button>
+                <button
                   onClick={() => setIsExpanded(false)}
+                  className="p-1.5 rounded-full bg-black/30 hover:bg-black/50 transition-colors text-white text-xs font-bold"
                 >
-                  <X className="w-4 h-4" />
-                </Button>
+                  ✕
+                </button>
+              </div>
+              
+              {/* Floating disc */}
+              <div className={cn(
+                "absolute -bottom-6 left-4 w-16 h-16 rounded-full",
+                "bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-lg",
+                "flex items-center justify-center border-2 border-zinc-600",
+                isPlaying && "animate-spin-slow"
+              )}>
+                <div className="absolute inset-2 rounded-full border border-zinc-500/30" />
+                <div className="w-4 h-4 rounded-full bg-primary" />
               </div>
             </div>
+            
+            {/* Track info */}
+            <div className="pt-4 pb-3 px-4 pl-24">
+              <div className="text-white font-medium text-sm truncate">{currentTrack.title}</div>
+              <div className="text-zinc-400 text-xs truncate">{currentTrack.artist}</div>
+            </div>
 
-            {/* Playlist */}
+            {/* Playlist dropdown */}
             {showPlaylist && (
-              <div className="max-h-40 overflow-y-auto border-b">
+              <div className="border-t border-zinc-700/50 max-h-32 overflow-y-auto">
                 {tracks.map((track, index) => (
                   <button
                     key={track.id}
                     onClick={() => selectTrack(index)}
                     className={cn(
-                      "w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2",
-                      currentTrackIndex === index && "bg-primary/10 text-primary"
+                      "w-full px-4 py-2 text-left hover:bg-zinc-800/50 transition-colors flex items-center gap-3",
+                      currentTrackIndex === index && "bg-primary/20"
                     )}
                   >
-                    <span className="text-xs text-muted-foreground w-4">{index + 1}</span>
+                    <span className="text-xs text-zinc-500 w-4">{index + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm truncate">{track.title}</div>
-                      <div className="text-xs text-muted-foreground truncate">{track.artist}</div>
+                      <div className={cn("text-sm truncate", currentTrackIndex === index ? "text-primary" : "text-zinc-300")}>
+                        {track.title}
+                      </div>
                     </div>
                     {currentTrackIndex === index && isPlaying && (
                       <div className="flex gap-0.5">
@@ -205,90 +228,69 @@ const MusicPlayer = () => {
               </div>
             )}
 
-            {/* Current track info */}
-            <div className="p-3">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={cn(
-                  "w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0",
-                  isPlaying && "animate-spin-slow"
-                )}>
-                  <Music className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{currentTrack.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{currentTrack.artist}</div>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="mb-3">
-                <input
-                  type="range"
-                  min="0"
-                  max={duration || 100}
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="w-full h-1 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+            {/* Progress bar */}
+            <div className="px-4">
+              <div className="relative h-1 bg-zinc-700 rounded-full overflow-hidden">
+                <div 
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-pink-500 rounded-full transition-all"
+                  style={{ width: `${progress}%` }}
                 />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
               </div>
+              <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
 
-              {/* Controls */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setIsMuted(!isMuted)}
-                  >
-                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </Button>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={isMuted ? 0 : volume}
-                    onChange={(e) => {
-                      setVolume(Number(e.target.value));
-                      setIsMuted(false);
-                    }}
-                    className="w-16 h-1 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-                  />
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9"
-                    onClick={prevTrack}
-                  >
-                    <SkipBack className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    className="h-10 w-10 rounded-full"
-                    onClick={togglePlay}
-                  >
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9"
-                    onClick={nextTrack}
-                  >
-                    <SkipForward className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="w-20" /> {/* Spacer for balance */}
+            {/* Controls */}
+            <div className="flex items-center justify-between px-4 py-3">
+              {/* Volume */}
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="p-2 text-zinc-400 hover:text-white transition-colors"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              
+              {/* Playback controls */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={prevTrack}
+                  className="p-2 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <SkipBack className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={togglePlay}
+                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:scale-105 transition-transform"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-5 h-5 text-zinc-900" />
+                  ) : (
+                    <Play className="w-5 h-5 text-zinc-900 ml-0.5" />
+                  )}
+                </button>
+                <button
+                  onClick={nextTrack}
+                  className="p-2 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <SkipForward className="w-5 h-5" />
+                </button>
               </div>
+              
+              {/* Volume slider */}
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => {
+                  setVolume(Number(e.target.value));
+                  setIsMuted(false);
+                }}
+                className="w-12 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-primary"
+              />
             </div>
           </div>
         )}
