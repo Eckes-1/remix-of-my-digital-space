@@ -497,6 +497,7 @@ export const THEME_STYLES: ThemeStyle[] = [
 ];
 
 const STORAGE_KEY = 'site-theme-style';
+const DEFAULT_THEME = 'warm-cozy';
 
 export const useThemeStyles = () => {
   const [currentTheme, setCurrentTheme] = useState<string>(() => {
@@ -567,9 +568,15 @@ export const useThemeStyles = () => {
     return () => observer.disconnect();
   }, [currentTheme, applyTheme]);
 
+  const resetToDefault = useCallback(() => {
+    setTheme(DEFAULT_THEME);
+  }, [setTheme]);
+
   return {
     currentTheme,
     setTheme,
+    resetToDefault,
+    defaultTheme: DEFAULT_THEME,
     themes: THEME_STYLES,
   };
 };
