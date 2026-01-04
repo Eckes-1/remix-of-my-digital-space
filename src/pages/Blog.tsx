@@ -107,14 +107,14 @@ const Blog = () => {
                 )}
               </div>
               
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Tag Filter */}
                 <div>
                   <label className="text-sm text-muted-foreground mb-2 block">标签</label>
                   <select
                     value={selectedTag || ''}
                     onChange={(e) => setSelectedTag(e.target.value || null)}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
                   >
                     <option value="">全部标签</option>
                     {tags?.map((tag) => (
@@ -128,9 +128,11 @@ const Blog = () => {
                   <label className="text-sm text-muted-foreground mb-2 block">开始日期</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {dateFrom ? format(dateFrom, 'yyyy年M月d日', { locale: zhCN }) : '选择日期'}
+                      <Button variant="outline" className="w-full justify-start text-left font-normal text-sm h-10">
+                        <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {dateFrom ? format(dateFrom, 'yyyy/M/d', { locale: zhCN }) : '选择日期'}
+                        </span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -149,9 +151,11 @@ const Blog = () => {
                   <label className="text-sm text-muted-foreground mb-2 block">结束日期</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {dateTo ? format(dateTo, 'yyyy年M月d日', { locale: zhCN }) : '选择日期'}
+                      <Button variant="outline" className="w-full justify-start text-left font-normal text-sm h-10">
+                        <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {dateTo ? format(dateTo, 'yyyy/M/d', { locale: zhCN }) : '选择日期'}
+                        </span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
