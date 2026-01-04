@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Music, List } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Music, List, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicTracks } from '@/hooks/useMusicTracks';
+import AudioVisualizer from '@/components/AudioVisualizer';
 
 interface Track {
   id: string;
@@ -105,14 +106,6 @@ const MusicPlayer = () => {
     setCurrentTrackIndex(prev => prev === tracks.length - 1 ? 0 : prev + 1);
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = Number(e.target.value);
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
-  };
-
   const formatTime = (time: number) => {
     if (isNaN(time)) return '0:00';
     const minutes = Math.floor(time / 60);
@@ -130,7 +123,7 @@ const MusicPlayer = () => {
 
   return (
     <>
-      <audio ref={audioRef} src={currentTrack.url} preload="metadata" />
+      <audio ref={audioRef} src={currentTrack.url} preload="metadata" crossOrigin="anonymous" />
       
       {/* Floating player - positioned at bottom-right but above back-to-top button */}
       <div className="fixed bottom-24 right-6 z-40">
@@ -159,73 +152,84 @@ const MusicPlayer = () => {
             )}
           </button>
         ) : (
-          /* Expanded state - modern compact player */
-          <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden w-72 border border-zinc-700/50">
-            {/* Header with album art simulation */}
-            <div className="relative h-20 bg-gradient-to-br from-primary/30 via-purple-500/20 to-pink-500/30 overflow-hidden">
-              {/* Animated background */}
-              <div className={cn(
-                "absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_60%)]",
-                isPlaying && "animate-pulse"
-              )} />
-              
-              {/* Close & playlist buttons */}
-              <div className="absolute top-2 right-2 flex gap-1">
+          /* Expanded state - modern compact player with visualizer */
+          <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden w-80 border border-zinc-700/50">
+            {/* Header */}
+            <div className="relative px-4 pt-3 pb-2 flex items-center justify-between border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "w-8 h-8 rounded-full bg-gradient-to-br from-primary to-pink-500",
+                  "flex items-center justify-center",
+                  isPlaying && "animate-spin-slow"
+                )}>
+                  <Music className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-zinc-400 text-xs font-medium">音乐播放器</span>
+              </div>
+              <div className="flex gap-1">
                 <button
                   onClick={() => setShowPlaylist(!showPlaylist)}
-                  className="p-1.5 rounded-full bg-black/30 hover:bg-black/50 transition-colors"
+                  className={cn(
+                    "p-1.5 rounded-lg transition-colors",
+                    showPlaylist ? "bg-primary/20 text-primary" : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                  )}
                 >
-                  <List className="w-4 h-4 text-white" />
+                  <List className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setIsExpanded(false)}
-                  className="p-1.5 rounded-full bg-black/30 hover:bg-black/50 transition-colors text-white text-xs font-bold"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                 >
-                  ✕
+                  <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
-              
-              {/* Floating disc */}
-              <div className={cn(
-                "absolute -bottom-6 left-4 w-16 h-16 rounded-full",
-                "bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-lg",
-                "flex items-center justify-center border-2 border-zinc-600",
-                isPlaying && "animate-spin-slow"
-              )}>
-                <div className="absolute inset-2 rounded-full border border-zinc-500/30" />
-                <div className="w-4 h-4 rounded-full bg-primary" />
-              </div>
+            </div>
+
+            {/* Visualizer */}
+            <div className="px-4 py-3 bg-zinc-950/50">
+              <AudioVisualizer 
+                audioRef={audioRef} 
+                isPlaying={isPlaying} 
+                className="w-full h-10"
+                barCount={24}
+              />
             </div>
             
             {/* Track info */}
-            <div className="pt-4 pb-3 px-4 pl-24">
+            <div className="px-4 py-2">
               <div className="text-white font-medium text-sm truncate">{currentTrack.title}</div>
-              <div className="text-zinc-400 text-xs truncate">{currentTrack.artist}</div>
+              <div className="text-zinc-500 text-xs truncate">{currentTrack.artist}</div>
             </div>
 
             {/* Playlist dropdown */}
             {showPlaylist && (
-              <div className="border-t border-zinc-700/50 max-h-32 overflow-y-auto">
+              <div className="border-t border-zinc-800 max-h-36 overflow-y-auto">
                 {tracks.map((track, index) => (
                   <button
                     key={track.id}
                     onClick={() => selectTrack(index)}
                     className={cn(
-                      "w-full px-4 py-2 text-left hover:bg-zinc-800/50 transition-colors flex items-center gap-3",
-                      currentTrackIndex === index && "bg-primary/20"
+                      "w-full px-4 py-2.5 text-left transition-colors flex items-center gap-3",
+                      currentTrackIndex === index 
+                        ? "bg-primary/10 border-l-2 border-primary" 
+                        : "hover:bg-zinc-800/50"
                     )}
                   >
-                    <span className="text-xs text-zinc-500 w-4">{index + 1}</span>
+                    <span className="text-xs text-zinc-600 w-5">{index + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <div className={cn("text-sm truncate", currentTrackIndex === index ? "text-primary" : "text-zinc-300")}>
+                      <div className={cn(
+                        "text-sm truncate",
+                        currentTrackIndex === index ? "text-primary font-medium" : "text-zinc-300"
+                      )}>
                         {track.title}
                       </div>
+                      <div className="text-xs text-zinc-600 truncate">{track.artist}</div>
                     </div>
                     {currentTrackIndex === index && isPlaying && (
-                      <div className="flex gap-0.5">
-                        <span className="w-0.5 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-0.5 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-0.5 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <div className="flex gap-0.5 items-end h-4">
+                        <span className="w-1 bg-primary rounded-full animate-equalizer-1" />
+                        <span className="w-1 bg-primary rounded-full animate-equalizer-2" />
+                        <span className="w-1 bg-primary rounded-full animate-equalizer-3" />
                       </div>
                     )}
                   </button>
@@ -234,14 +238,29 @@ const MusicPlayer = () => {
             )}
 
             {/* Progress bar */}
-            <div className="px-4">
-              <div className="relative h-1 bg-zinc-700 rounded-full overflow-hidden">
+            <div className="px-4 pt-2">
+              <div 
+                className="relative h-1 bg-zinc-800 rounded-full overflow-hidden cursor-pointer group"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const percentage = x / rect.width;
+                  if (audioRef.current) {
+                    audioRef.current.currentTime = percentage * duration;
+                  }
+                }}
+              >
                 <div 
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-pink-500 rounded-full transition-all"
                   style={{ width: `${progress}%` }}
                 />
+                {/* Hover indicator */}
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ left: `calc(${progress}% - 6px)` }}
+                />
               </div>
-              <div className="flex justify-between text-xs text-zinc-500 mt-1">
+              <div className="flex justify-between text-[10px] text-zinc-600 mt-1">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
@@ -250,15 +269,33 @@ const MusicPlayer = () => {
             {/* Controls */}
             <div className="flex items-center justify-between px-4 py-3">
               {/* Volume */}
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="p-2 text-zinc-400 hover:text-white transition-colors"
-              >
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="p-1.5 text-zinc-400 hover:text-white transition-colors"
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="w-4 h-4" />
+                  ) : (
+                    <Volume2 className="w-4 h-4" />
+                  )}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    setVolume(Number(e.target.value));
+                    setIsMuted(false);
+                  }}
+                  className="w-16 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+              </div>
               
               {/* Playback controls */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={prevTrack}
                   className="p-2 text-zinc-400 hover:text-white transition-colors"
@@ -267,12 +304,17 @@ const MusicPlayer = () => {
                 </button>
                 <button
                   onClick={togglePlay}
-                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:scale-105 transition-transform"
+                  className={cn(
+                    "w-11 h-11 rounded-full flex items-center justify-center",
+                    "bg-gradient-to-br from-primary to-pink-500",
+                    "hover:scale-105 active:scale-95 transition-transform",
+                    "shadow-lg shadow-primary/30"
+                  )}
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 text-zinc-900" />
+                    <Pause className="w-5 h-5 text-white" />
                   ) : (
-                    <Play className="w-5 h-5 text-zinc-900 ml-0.5" />
+                    <Play className="w-5 h-5 text-white ml-0.5" />
                   )}
                 </button>
                 <button
@@ -283,23 +325,38 @@ const MusicPlayer = () => {
                 </button>
               </div>
               
-              {/* Volume slider */}
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => {
-                  setVolume(Number(e.target.value));
-                  setIsMuted(false);
-                }}
-                className="w-12 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-primary"
-              />
+              {/* Track indicator */}
+              <div className="text-[10px] text-zinc-600 w-16 text-right">
+                {currentTrackIndex + 1} / {tracks.length}
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes equalizer-1 {
+          0%, 100% { height: 4px; }
+          50% { height: 16px; }
+        }
+        @keyframes equalizer-2 {
+          0%, 100% { height: 8px; }
+          50% { height: 12px; }
+        }
+        @keyframes equalizer-3 {
+          0%, 100% { height: 6px; }
+          50% { height: 14px; }
+        }
+        .animate-equalizer-1 {
+          animation: equalizer-1 0.4s ease-in-out infinite;
+        }
+        .animate-equalizer-2 {
+          animation: equalizer-2 0.4s ease-in-out infinite 0.1s;
+        }
+        .animate-equalizer-3 {
+          animation: equalizer-3 0.4s ease-in-out infinite 0.2s;
+        }
+      `}</style>
     </>
   );
 };
