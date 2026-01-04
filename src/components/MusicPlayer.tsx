@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Music2, ListMusic, X, Disc3 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Music2, ListMusic, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicTracks } from '@/hooks/useMusicTracks';
+import LyricsDisplay from './LyricsDisplay';
 
 interface Track {
   id: string;
   title: string;
   artist: string;
   url: string;
+  lyrics?: string | null;
 }
 
 const defaultTracks: Track[] = [
@@ -41,13 +43,18 @@ const MusicPlayer = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showPlaylist, setShowPlaylist] = useState(false);
-  const [bars, setBars] = useState<number[]>(Array(12).fill(4));
+  const [showLyrics, setShowLyrics] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const animationRef = useRef<number>();
   
   // Use custom tracks if available, otherwise use defaults
   const tracks: Track[] = customTracks && customTracks.length > 0 
-    ? customTracks.map(t => ({ id: t.id, title: t.title, artist: t.artist, url: t.url }))
+    ? customTracks.map(t => ({ 
+        id: t.id, 
+        title: t.title, 
+        artist: t.artist, 
+        url: t.url,
+        lyrics: (t as any).lyrics || null,
+      }))
     : defaultTracks;
   const currentTrack = tracks[currentTrackIndex] || tracks[0];
 
@@ -56,28 +63,6 @@ const MusicPlayer = () => {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted]);
-
-  // Animated equalizer bars
-  useEffect(() => {
-    const animate = () => {
-      if (isPlaying) {
-        setBars(prev => prev.map(() => Math.random() * 24 + 4));
-      } else {
-        setBars(Array(12).fill(4));
-      }
-      animationRef.current = requestAnimationFrame(animate);
-    };
-    
-    if (isPlaying) {
-      animationRef.current = requestAnimationFrame(animate);
-    }
-    
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPlaying]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -158,148 +143,166 @@ const MusicPlayer = () => {
       
       <div className="fixed bottom-24 right-6 z-40">
         {!isExpanded ? (
-          /* Collapsed - Floating disc */
+          /* Collapsed - Vinyl style button */
           <button
             onClick={() => setIsExpanded(true)}
             className={cn(
-              "relative w-16 h-16 rounded-full",
-              "bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600",
-              "shadow-lg shadow-purple-500/30",
-              "flex items-center justify-center group",
-              "transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-purple-500/40",
-              isPlaying && "animate-pulse-glow"
+              "group relative w-14 h-14 rounded-full",
+              "bg-gradient-to-br from-slate-800 via-slate-900 to-black",
+              "shadow-xl shadow-black/50 border border-white/10",
+              "flex items-center justify-center",
+              "transition-all duration-500 hover:scale-110",
+              isPlaying && "animate-spin-slow"
             )}
           >
-            {/* Spinning ring */}
-            <div className={cn(
-              "absolute inset-0 rounded-full border-2 border-white/20",
-              isPlaying && "animate-spin-slow"
-            )}>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full" />
-            </div>
+            {/* Vinyl grooves */}
+            <div className="absolute inset-1 rounded-full border border-white/5" />
+            <div className="absolute inset-2 rounded-full border border-white/5" />
+            <div className="absolute inset-3 rounded-full border border-white/5" />
             
-            {/* Center icon */}
-            <div className="relative">
+            {/* Center label */}
+            <div className={cn(
+              "w-5 h-5 rounded-full flex items-center justify-center",
+              "bg-gradient-to-br from-rose-500 via-pink-500 to-purple-500"
+            )}>
               {isPlaying ? (
-                <div className="flex items-end gap-0.5 h-6">
-                  {[0, 1, 2, 3].map(i => (
-                    <span
-                      key={i}
-                      className="w-1 bg-white rounded-full transition-all duration-150"
-                      style={{ height: `${8 + Math.sin(Date.now() / 200 + i) * 8}px` }}
-                    />
-                  ))}
+                <div className="flex gap-0.5 items-end h-2.5">
+                  <span className="w-0.5 bg-white rounded-full animate-eq-1" />
+                  <span className="w-0.5 bg-white rounded-full animate-eq-2" />
+                  <span className="w-0.5 bg-white rounded-full animate-eq-3" />
                 </div>
               ) : (
-                <Music2 className="w-6 h-6 text-white" />
+                <Music2 className="w-2.5 h-2.5 text-white" />
               )}
             </div>
+            
+            {/* Glow effect when playing */}
+            {isPlaying && (
+              <div className="absolute inset-0 rounded-full bg-pink-500/20 blur-xl animate-pulse" />
+            )}
           </button>
         ) : (
-          /* Expanded - Full player */
+          /* Expanded - Glassmorphism player */
           <div className={cn(
-            "w-80 rounded-3xl overflow-hidden",
-            "bg-gradient-to-b from-zinc-900 to-zinc-950",
+            "w-72 rounded-2xl overflow-hidden",
+            "bg-black/80 backdrop-blur-xl",
             "border border-white/10",
-            "shadow-2xl shadow-black/50"
+            "shadow-2xl shadow-black/60"
           )}>
-            {/* Visualizer header */}
-            <div className="relative h-24 bg-gradient-to-br from-violet-600/20 via-purple-600/20 to-fuchsia-600/20 overflow-hidden">
-              {/* Animated bars */}
-              <div className="absolute inset-x-4 bottom-0 flex items-end justify-center gap-1">
-                {bars.map((height, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "w-2 rounded-t-full transition-all duration-100",
-                      isPlaying 
-                        ? "bg-gradient-to-t from-violet-500 to-fuchsia-400" 
-                        : "bg-zinc-700"
-                    )}
-                    style={{ height: `${height}px` }}
-                  />
-                ))}
-              </div>
+            {/* Header with cover art simulation */}
+            <div className="relative h-16 bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-blue-500/20">
+              {/* Animated gradient background */}
+              <div className={cn(
+                "absolute inset-0 bg-gradient-to-r from-rose-500/30 via-purple-500/30 to-blue-500/30",
+                "animate-gradient-x"
+              )} />
               
               {/* Controls overlay */}
-              <div className="absolute top-3 right-3 flex gap-1">
+              <div className="absolute top-2 right-2 flex gap-1">
+                <button
+                  onClick={() => setShowLyrics(!showLyrics)}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-all text-xs",
+                    showLyrics 
+                      ? "bg-white/20 text-white" 
+                      : "bg-black/30 text-white/60 hover:text-white"
+                  )}
+                >
+                  词
+                </button>
                 <button
                   onClick={() => setShowPlaylist(!showPlaylist)}
                   className={cn(
-                    "p-2 rounded-full transition-colors",
-                    showPlaylist ? "bg-white/20 text-white" : "bg-black/20 text-white/70 hover:text-white"
+                    "p-1.5 rounded-lg transition-all",
+                    showPlaylist 
+                      ? "bg-white/20 text-white" 
+                      : "bg-black/30 text-white/60 hover:text-white"
                   )}
                 >
-                  <ListMusic className="w-4 h-4" />
+                  <ListMusic className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setIsExpanded(false)}
-                  className="p-2 rounded-full bg-black/20 text-white/70 hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg bg-black/30 text-white/60 hover:text-white transition-all"
                 >
-                  <X className="w-4 h-4" />
+                  <ChevronDown className="w-3.5 h-3.5" />
                 </button>
               </div>
               
-              {/* Spinning disc */}
+              {/* Mini vinyl disc */}
               <div className="absolute bottom-0 left-4 translate-y-1/2">
                 <div className={cn(
-                  "w-20 h-20 rounded-full",
-                  "bg-gradient-to-br from-zinc-800 to-zinc-900",
-                  "border-4 border-zinc-700",
-                  "shadow-lg flex items-center justify-center",
+                  "w-14 h-14 rounded-full",
+                  "bg-gradient-to-br from-zinc-800 to-black",
+                  "border-2 border-zinc-700 shadow-lg",
+                  "flex items-center justify-center",
                   isPlaying && "animate-spin-slow"
                 )}>
-                  <div className="absolute inset-3 rounded-full border border-zinc-600/50" />
-                  <div className="absolute inset-5 rounded-full border border-zinc-600/30" />
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                    <Disc3 className="w-3 h-3 text-white" />
-                  </div>
+                  <div className="absolute inset-2 rounded-full border border-zinc-600/30" />
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-rose-400 to-purple-500" />
                 </div>
               </div>
             </div>
             
             {/* Track info */}
-            <div className="pt-12 pb-3 px-5">
-              <h3 className="text-white font-semibold truncate">{currentTrack.title}</h3>
-              <p className="text-zinc-500 text-sm truncate">{currentTrack.artist}</p>
+            <div className="pt-10 pb-2 px-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-medium text-sm truncate">{currentTrack.title}</h3>
+                  <p className="text-white/50 text-xs truncate">{currentTrack.artist}</p>
+                </div>
+                <span className="text-white/30 text-xs ml-2">
+                  {currentTrackIndex + 1}/{tracks.length}
+                </span>
+              </div>
             </div>
+
+            {/* Lyrics section */}
+            {showLyrics && currentTrack.lyrics && (
+              <div className="border-t border-white/5 bg-zinc-900/50">
+                <LyricsDisplay 
+                  lyrics={currentTrack.lyrics} 
+                  currentTime={currentTime}
+                  isPlaying={isPlaying}
+                />
+              </div>
+            )}
 
             {/* Playlist */}
             {showPlaylist && (
-              <div className="border-t border-white/5 max-h-40 overflow-y-auto">
+              <div className="border-t border-white/5 max-h-32 overflow-y-auto">
                 {tracks.map((track, index) => (
                   <button
                     key={track.id}
                     onClick={() => selectTrack(index)}
                     className={cn(
-                      "w-full px-5 py-3 text-left transition-all flex items-center gap-3",
+                      "w-full px-4 py-2 text-left transition-all flex items-center gap-2",
                       currentTrackIndex === index 
-                        ? "bg-gradient-to-r from-violet-600/20 to-transparent" 
+                        ? "bg-white/10" 
                         : "hover:bg-white/5"
                     )}
                   >
                     <span className={cn(
-                      "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
+                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium",
                       currentTrackIndex === index 
-                        ? "bg-violet-500 text-white" 
-                        : "bg-zinc-800 text-zinc-500"
+                        ? "bg-gradient-to-r from-rose-500 to-purple-500 text-white" 
+                        : "bg-white/10 text-white/50"
                     )}>
                       {index + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className={cn(
-                        "text-sm truncate",
-                        currentTrackIndex === index ? "text-violet-400 font-medium" : "text-zinc-300"
+                        "text-xs truncate",
+                        currentTrackIndex === index ? "text-white font-medium" : "text-white/70"
                       )}>
                         {track.title}
                       </div>
-                      <div className="text-xs text-zinc-600 truncate">{track.artist}</div>
                     </div>
                     {currentTrackIndex === index && isPlaying && (
-                      <div className="flex gap-0.5 items-end h-4">
-                        <span className="w-0.5 bg-violet-400 rounded-full animate-eq-1" />
-                        <span className="w-0.5 bg-violet-400 rounded-full animate-eq-2" />
-                        <span className="w-0.5 bg-violet-400 rounded-full animate-eq-3" />
+                      <div className="flex gap-0.5 items-end h-3">
+                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-1" />
+                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-2" />
+                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-3" />
                       </div>
                     )}
                   </button>
@@ -307,10 +310,10 @@ const MusicPlayer = () => {
               </div>
             )}
 
-            {/* Progress */}
-            <div className="px-5 pt-2">
+            {/* Progress bar */}
+            <div className="px-4 pt-2">
               <div 
-                className="relative h-1.5 bg-zinc-800 rounded-full overflow-hidden cursor-pointer group"
+                className="relative h-1 bg-white/10 rounded-full overflow-hidden cursor-pointer group"
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = e.clientX - rect.left;
@@ -321,32 +324,32 @@ const MusicPlayer = () => {
                 }}
               >
                 <div 
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full"
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-rose-500 to-purple-500 rounded-full"
                   style={{ width: `${progress}%` }}
                 />
                 <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ left: `calc(${progress}% - 6px)` }}
+                  className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ left: `calc(${progress}% - 5px)` }}
                 />
               </div>
-              <div className="flex justify-between text-[10px] text-zinc-600 mt-1.5">
+              <div className="flex justify-between text-[10px] text-white/40 mt-1">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center justify-between px-4 py-3">
               {/* Volume */}
-              <div className="flex items-center gap-2 w-24">
+              <div className="flex items-center gap-1.5 w-20">
                 <button
                   onClick={() => setIsMuted(!isMuted)}
-                  className="p-1 text-zinc-500 hover:text-white transition-colors"
+                  className="p-1 text-white/50 hover:text-white transition-colors"
                 >
                   {isMuted || volume === 0 ? (
-                    <VolumeX className="w-4 h-4" />
+                    <VolumeX className="w-3.5 h-3.5" />
                   ) : (
-                    <Volume2 className="w-4 h-4" />
+                    <Volume2 className="w-3.5 h-3.5" />
                   )}
                 </button>
                 <input
@@ -359,77 +362,71 @@ const MusicPlayer = () => {
                     setVolume(Number(e.target.value));
                     setIsMuted(false);
                   }}
-                  className="w-14 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                  className="w-12 h-0.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-rose-500"
                 />
               </div>
               
               {/* Playback */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={prevTrack}
-                  className="p-2 text-zinc-500 hover:text-white transition-colors"
+                  className="p-1.5 text-white/50 hover:text-white transition-colors"
                 >
-                  <SkipBack className="w-5 h-5 fill-current" />
+                  <SkipBack className="w-4 h-4" />
                 </button>
                 <button
                   onClick={togglePlay}
                   className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center",
-                    "bg-gradient-to-br from-violet-500 to-fuchsia-500",
+                    "w-10 h-10 rounded-full flex items-center justify-center",
+                    "bg-gradient-to-r from-rose-500 to-purple-500",
                     "hover:scale-105 active:scale-95 transition-transform",
-                    "shadow-lg shadow-violet-500/30"
+                    "shadow-lg shadow-rose-500/25"
                   )}
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 text-white fill-current" />
+                    <Pause className="w-4 h-4 text-white" />
                   ) : (
-                    <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                    <Play className="w-4 h-4 text-white ml-0.5" />
                   )}
                 </button>
                 <button
                   onClick={nextTrack}
-                  className="p-2 text-zinc-500 hover:text-white transition-colors"
+                  className="p-1.5 text-white/50 hover:text-white transition-colors"
                 >
-                  <SkipForward className="w-5 h-5 fill-current" />
+                  <SkipForward className="w-4 h-4" />
                 </button>
               </div>
               
-              {/* Track number */}
-              <div className="w-24 text-right text-xs text-zinc-600">
-                {currentTrackIndex + 1} / {tracks.length}
-              </div>
+              {/* Spacer */}
+              <div className="w-20" />
             </div>
           </div>
         )}
       </div>
 
       <style>{`
-        @keyframes pulse-glow {
-          0%, 100% {
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
-          }
-          50% {
-            box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
-          }
-        }
-        .animate-pulse-glow {
-          animation: pulse-glow 2s ease-in-out infinite;
-        }
         @keyframes eq-1 {
           0%, 100% { height: 4px; }
-          50% { height: 16px; }
-        }
-        @keyframes eq-2 {
-          0%, 100% { height: 8px; }
           50% { height: 12px; }
         }
-        @keyframes eq-3 {
+        @keyframes eq-2 {
           0%, 100% { height: 6px; }
-          50% { height: 14px; }
+          50% { height: 10px; }
+        }
+        @keyframes eq-3 {
+          0%, 100% { height: 5px; }
+          50% { height: 11px; }
         }
         .animate-eq-1 { animation: eq-1 0.4s ease-in-out infinite; }
         .animate-eq-2 { animation: eq-2 0.4s ease-in-out infinite 0.1s; }
         .animate-eq-3 { animation: eq-3 0.4s ease-in-out infinite 0.2s; }
+        @keyframes gradient-x {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+        }
+        .animate-gradient-x {
+          animation: gradient-x 3s ease-in-out infinite;
+        }
       `}</style>
     </>
   );

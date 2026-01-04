@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { List } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,25 +34,36 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
     return items;
   }, [content]);
 
+  // Enhanced scroll-based active heading detection
+  const handleScroll = useCallback(() => {
+    const scrollPosition = window.scrollY + 150;
+    
+    // Find the current active heading based on scroll position
+    let currentActive = "";
+    for (const heading of headings) {
+      const element = document.getElementById(heading.id);
+      if (element) {
+        const { top } = element.getBoundingClientRect();
+        const absoluteTop = top + window.scrollY;
+        
+        if (absoluteTop <= scrollPosition) {
+          currentActive = heading.id;
+        }
+      }
+    }
+    
+    if (currentActive && currentActive !== activeId) {
+      setActiveId(currentActive);
+    }
+  }, [headings, activeId]);
+
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-          }
-        });
-      },
-      { rootMargin: "-80px 0px -80% 0px" }
-    );
-
-    headings.forEach(({ id }) => {
-      const element = document.getElementById(id);
-      if (element) observer.observe(element);
-    });
-
-    return () => observer.disconnect();
-  }, [headings]);
+    // Initial check
+    handleScroll();
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   const scrollToHeading = (id: string) => {
     const element = document.getElementById(id);
@@ -98,20 +109,37 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
           <List className="w-4 h-4" />
           文章目录
         </h3>
-        <ul className="space-y-2">
-          {headings.map((heading) => (
-            <li key={heading.id}>
+        <ul className="space-y-1">
+          {headings.map((heading, index) => (
+            <li key={heading.id} className="relative">
+              {/* Active indicator line */}
+              <div 
+                className={cn(
+                  "absolute left-0 top-0 bottom-0 w-0.5 rounded-full transition-all duration-300",
+                  activeId === heading.id 
+                    ? "bg-primary scale-y-100" 
+                    : "bg-transparent scale-y-0"
+                )}
+              />
               <button
                 onClick={() => scrollToHeading(heading.id)}
                 className={cn(
-                  "text-sm text-left w-full py-1.5 px-3 rounded-lg transition-all duration-200",
-                  "hover:bg-primary/10 hover:text-primary",
+                  "text-sm text-left w-full py-2 pl-4 pr-3 rounded-r-lg transition-all duration-300",
+                  "hover:bg-primary/10 hover:text-primary hover:translate-x-1",
                   activeId === heading.id
-                    ? "bg-primary/10 text-primary font-medium border-l-2 border-primary"
+                    ? "bg-gradient-to-r from-primary/15 to-transparent text-primary font-medium"
                     : "text-muted-foreground"
                 )}
               >
-                {heading.title}
+                <span className={cn(
+                  "inline-flex items-center gap-2",
+                  activeId === heading.id && "animate-fade-in"
+                )}>
+                  {activeId === heading.id && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  )}
+                  {heading.title}
+                </span>
               </button>
             </li>
           ))}
