@@ -8,18 +8,18 @@ interface UseTypewriterProps {
 
 export const useTypewriter = ({ text, speed = 100, delay = 0 }: UseTypewriterProps) => {
   const [displayText, setDisplayText] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
 
   useEffect(() => {
     setDisplayText('');
-    setIsComplete(false);
     setCurrentIndex(0);
+    setIsTypingComplete(false);
   }, [text]);
 
   useEffect(() => {
     if (currentIndex >= text.length) {
-      setIsComplete(true);
+      setIsTypingComplete(true);
       return;
     }
 
@@ -33,5 +33,6 @@ export const useTypewriter = ({ text, speed = 100, delay = 0 }: UseTypewriterPro
     return () => clearTimeout(timeout);
   }, [currentIndex, text, speed, delay]);
 
-  return { displayText, isComplete };
+  // isComplete is always false to keep cursor blinking
+  return { displayText, isComplete: false, isTypingComplete };
 };
