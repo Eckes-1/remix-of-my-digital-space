@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Eye, User } from "lucide-react";
-import { format } from 'date-fns';
+import { ArrowLeft, Calendar, Clock, Eye, BookOpen } from "lucide-react";
+import { format, formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -11,8 +11,10 @@ import ShareButton from "@/components/ShareButton";
 import TableOfContents from "@/components/TableOfContents";
 import RelatedPosts from "@/components/RelatedPosts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
 import { useAuthor } from "@/hooks/useAuthors";
+import { useReadingProgress, getLastReadProgress } from "@/hooks/useReadingProgress";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
@@ -30,12 +32,33 @@ const BlogPost = () => {
   const { data: post, isLoading, error } = usePost(slug || '');
   const incrementView = useIncrementViewCount();
   const { data: author } = useAuthor((post as any)?.author_id || null);
+  const { getSavedProgress } = useReadingProgress(slug);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [savedScrollPosition, setSavedScrollPosition] = useState<number | null>(null);
 
   useEffect(() => {
     if (slug && post) {
       incrementView.mutate(slug);
+      
+      // Check for saved reading progress
+      const savedPos = getSavedProgress(slug);
+      if (savedPos && savedPos > 300) {
+        setSavedScrollPosition(savedPos);
+        setShowResumePrompt(true);
+      }
     }
   }, [slug, post?.id]);
+
+  const handleResumeReading = () => {
+    if (savedScrollPosition) {
+      window.scrollTo({ top: savedScrollPosition, behavior: 'smooth' });
+    }
+    setShowResumePrompt(false);
+  };
+
+  const handleStartFromBeginning = () => {
+    setShowResumePrompt(false);
+  };
 
   // Parse content with heading IDs
   const parsedContent = useMemo(() => {
@@ -92,9 +115,36 @@ const BlogPost = () => {
     ? format(new Date(post.published_at), 'yyyy年M月d日', { locale: zhCN })
     : format(new Date(post.created_at), 'yyyy年M月d日', { locale: zhCN });
 
+  const lastReadInfo = slug ? getLastReadProgress(slug) : null;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      
+      {/* Resume Reading Prompt */}
+      {showResumePrompt && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+          <div className="bg-card border border-border rounded-xl shadow-xl p-4 flex items-center gap-4">
+            <div className="p-2 rounded-full bg-primary/10">
+              <BookOpen className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">继续上次阅读？</p>
+              <p className="text-sm text-muted-foreground">
+                {lastReadInfo && `上次阅读到 ${Math.round(lastReadInfo.progress)}%`}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handleStartFromBeginning}>
+                从头开始
+              </Button>
+              <Button size="sm" onClick={handleResumeReading}>
+                继续阅读
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <main className="flex-1 py-8">
         {/* Hero Image */}
