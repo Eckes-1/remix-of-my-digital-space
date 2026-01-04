@@ -128,7 +128,7 @@ const BlogPost = () => {
               
               <header className="mb-12">
                 <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mb-4">
-                  {post.category}
+                  {replaceText(post.category)}
                 </span>
                 
                 <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
@@ -196,7 +196,7 @@ const BlogPost = () => {
 
             {/* Sidebar with TOC */}
             <aside className="hidden lg:block">
-              <TableOfContents content={post.content} />
+              <TableOfContents content={replaceText(post.content)} />
             </aside>
           </div>
         </div>

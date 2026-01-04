@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useTextReplacer } from "@/components/TextReplacer";
 import { Settings, Menu, X, Home, BookOpen, Archive, User } from "lucide-react";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
@@ -10,9 +11,10 @@ const Header = () => {
   const location = useLocation();
   const { user, isAdmin } = useAuth();
   const { data: siteSettings } = useSiteSettings();
+  const replaceText = useTextReplacer();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  const siteName = siteSettings?.name || "墨迹随笔";
+  const siteName = replaceText(siteSettings?.name || "寒冬随笔");
 
   const navLinks = [
     { path: "/", label: "首页", icon: Home },

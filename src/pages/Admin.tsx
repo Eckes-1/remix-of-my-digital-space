@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, forwardRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { usePosts, useCreatePost, useUpdatePost, useDeletePost, Post } from '@/hooks/usePosts';
+import { usePosts, useCreatePost, useUpdatePost, useDeletePost, useBulkUpdatePosts, useBulkDeletePosts, Post } from '@/hooks/usePosts';
 import { useAllComments, useApproveComment, useDeleteComment, Comment } from '@/hooks/useComments';
 import { useTagsManagement, useCreateTag, useUpdateTag, useDeleteTag, Tag } from '@/hooks/useTagsManagement';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, Category } from '@/hooks/useCategories';
@@ -74,6 +74,8 @@ const Admin = () => {
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
+  const bulkUpdatePosts = useBulkUpdatePosts();
+  const bulkDeletePosts = useBulkDeletePosts();
   const approveComment = useApproveComment();
   const deleteComment = useDeleteComment();
   const createTag = useCreateTag();
@@ -91,6 +93,8 @@ const Admin = () => {
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
   const [deleteTagId, setDeleteTagId] = useState<string | null>(null);
+  const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   // Post form state
   const [title, setTitle] = useState('');
@@ -134,7 +138,7 @@ const Admin = () => {
   const heroBgInputRef = useRef<HTMLInputElement>(null);
 
   // Site settings state
-  const [siteName, setSiteName] = useState('墨迹随笔');
+  const [siteName, setSiteName] = useState('寒冬随笔');
   const [textReplacements, setTextReplacements] = useState<Array<{ from: string; to: string }>>([]);
   const [newReplacementFrom, setNewReplacementFrom] = useState('');
   const [newReplacementTo, setNewReplacementTo] = useState('');
@@ -368,6 +372,72 @@ const Admin = () => {
     }
   };
 
+  const togglePostSelected = (postId: string) => {
+    setSelectedPostIds((prev) =>
+      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
+    );
+  };
+
+  const toggleSelectAllPosts = () => {
+    if (!posts?.length) return;
+    setSelectedPostIds((prev) => (prev.length === posts.length ? [] : posts.map((p) => p.id)));
+  };
+
+  const handleBulkPublish = async () => {
+    if (!selectedPostIds.length) return;
+
+    const now = new Date().toISOString();
+    const toPublish = (posts || [])
+      .filter((p) => selectedPostIds.includes(p.id) && !p.published)
+      .map((p) => p.id);
+    const alreadyPublished = selectedPostIds.filter((id) => !toPublish.includes(id));
+
+    try {
+      if (toPublish.length) {
+        await bulkUpdatePosts.mutateAsync({
+          ids: toPublish,
+          updates: { published: true, published_at: now },
+        });
+      }
+      if (alreadyPublished.length) {
+        await bulkUpdatePosts.mutateAsync({
+          ids: alreadyPublished,
+          updates: { published: true },
+        });
+      }
+      toast.success(`已批量发布 ${selectedPostIds.length} 篇文章`);
+      setSelectedPostIds([]);
+    } catch (error) {
+      toast.error("批量发布失败");
+    }
+  };
+
+  const handleBulkUnpublish = async () => {
+    if (!selectedPostIds.length) return;
+    try {
+      await bulkUpdatePosts.mutateAsync({
+        ids: selectedPostIds,
+        updates: { published: false, published_at: null },
+      });
+      toast.success(`已将 ${selectedPostIds.length} 篇文章转为草稿`);
+      setSelectedPostIds([]);
+    } catch (error) {
+      toast.error("批量修改失败");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedPostIds.length) return;
+    try {
+      await bulkDeletePosts.mutateAsync({ ids: selectedPostIds });
+      toast.success(`已删除 ${selectedPostIds.length} 篇文章`);
+      setSelectedPostIds([]);
+      setBulkDeleteOpen(false);
+    } catch (error) {
+      toast.error("批量删除失败");
+    }
+  };
+
   const handleApproveComment = async (id: string, approved: boolean) => {
     try {
       await approveComment.mutateAsync({ id, approved });
@@ -522,6 +592,13 @@ const Admin = () => {
 
   const removeTextReplacement = (index: number) => {
     setTextReplacements(textReplacements.filter((_, i) => i !== index));
+  };
+
+  const applyPresetMoJiToHanDong = () => {
+    setTextReplacements((prev) => {
+      const withoutMoJi = prev.filter((r) => r.from !== '墨迹');
+      return [...withoutMoJi, { from: '墨迹', to: '寒冬' }];
+    });
   };
 
   const handleSaveTypewriterSettings = async () => {
@@ -717,12 +794,59 @@ const Admin = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  <div className="blog-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={!!posts?.length && selectedPostIds.length === posts.length}
+                        onChange={toggleSelectAllPosts}
+                        className="h-4 w-4 rounded border-border"
+                        aria-label="全选文章"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        已选择 {selectedPostIds.length} 篇
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleBulkPublish}
+                        disabled={!selectedPostIds.length || bulkUpdatePosts.isPending || bulkDeletePosts.isPending}
+                      >
+                        批量发布
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBulkUnpublish}
+                        disabled={!selectedPostIds.length || bulkUpdatePosts.isPending || bulkDeletePosts.isPending}
+                      >
+                        转为草稿
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setBulkDeleteOpen(true)}
+                        disabled={!selectedPostIds.length || bulkUpdatePosts.isPending || bulkDeletePosts.isPending}
+                      >
+                        批量删除
+                      </Button>
+                    </div>
+                  </div>
+
                   {posts?.map((post) => (
                     <div
                       key={post.id}
-                      className="blog-card flex items-center justify-between"
+                      className="blog-card flex items-center justify-between gap-4"
                     >
-                      <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedPostIds.includes(post.id)}
+                          onChange={() => togglePostSelected(post.id)}
+                          className="h-4 w-4 rounded border-border"
+                          aria-label={`选择文章 ${post.title}`}
+                        />
                         {post.cover_image ? (
                           <img 
                             src={post.cover_image} 
@@ -897,7 +1021,7 @@ const Admin = () => {
                       <Input
                         value={heroTitle}
                         onChange={(e) => setHeroTitle(e.target.value)}
-                        placeholder="墨迹随笔"
+                        placeholder="寒冬随笔"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1104,6 +1228,17 @@ const Admin = () => {
                     <p className="text-xs text-muted-foreground">
                       设置全站文字自动替换规则，例如将"网站"替换为"博客"
                     </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={applyPresetMoJiToHanDong}
+                      >
+                        一键：墨迹 → 寒冬
+                      </Button>
+                    </div>
                     
                     {textReplacements.length > 0 && (
                       <div className="space-y-2">
@@ -1425,6 +1560,24 @@ const Admin = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Bulk Delete Posts Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认批量删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作无法撤销，将永久删除所选 {selectedPostIds.length} 篇文章。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground">
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete Comment Confirmation */}
       <AlertDialog open={!!deleteCommentId} onOpenChange={() => setDeleteCommentId(null)}>
         <AlertDialogContent>
@@ -1530,8 +1683,11 @@ const Admin = () => {
 };
 
 // Stat Card Component
-const StatCard = ({ label, value, subLabel, icon }: { label: string; value: number; subLabel?: string; icon: React.ReactNode }) => (
-  <div className="blog-card">
+const StatCard = forwardRef<
+  HTMLDivElement,
+  { label: string; value: number; subLabel?: string; icon: React.ReactNode }
+>(({ label, value, subLabel, icon }, ref) => (
+  <div ref={ref} className="blog-card">
     <div className="flex items-center justify-between mb-2">
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="text-primary">{icon}</div>
@@ -1539,7 +1695,8 @@ const StatCard = ({ label, value, subLabel, icon }: { label: string; value: numb
     <p className="text-3xl font-bold text-foreground">{value.toLocaleString()}</p>
     {subLabel && <p className="text-xs text-muted-foreground mt-1">{subLabel}</p>}
   </div>
-);
+));
+StatCard.displayName = 'StatCard';
 
 // Comment Card Component
 const CommentCard = ({ 
