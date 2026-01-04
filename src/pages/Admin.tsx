@@ -3,6 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePosts, useCreatePost, useUpdatePost, useDeletePost, Post } from '@/hooks/usePosts';
 import { useAllComments, useApproveComment, useDeleteComment, Comment } from '@/hooks/useComments';
+import { useTagsManagement, useCreateTag, useUpdateTag, useDeleteTag, Tag } from '@/hooks/useTagsManagement';
+import { useDashboardStats } from '@/hooks/useStats';
+import { useHeroSettings, useTypewriterSettings, useUpdateHeroSettings, useUpdateTypewriterSettings, HeroSettings, TypewriterSettings } from '@/hooks/useSiteSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,9 +28,13 @@ import {
   MessageSquare,
   Check,
   XCircle,
-  Image,
   Upload,
-  Loader2
+  Loader2,
+  LayoutDashboard,
+  Tag as TagIcon,
+  Settings,
+  Heart,
+  TrendingUp
 } from 'lucide-react';
 import {
   Dialog,
@@ -51,17 +58,29 @@ const Admin = () => {
   const navigate = useNavigate();
   const { data: posts, isLoading } = usePosts(false);
   const { data: comments, isLoading: commentsLoading } = useAllComments();
+  const { data: tags, isLoading: tagsLoading } = useTagsManagement();
+  const { data: stats } = useDashboardStats();
+  const { data: heroSettings } = useHeroSettings();
+  const { data: typewriterSettings } = useTypewriterSettings();
+  
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
   const approveComment = useApproveComment();
   const deleteComment = useDeleteComment();
+  const createTag = useCreateTag();
+  const updateTag = useUpdateTag();
+  const deleteTagMutation = useDeleteTag();
+  const updateHeroSettings = useUpdateHeroSettings();
+  const updateTypewriterSettings = useUpdateTypewriterSettings();
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
+  const [deleteTagId, setDeleteTagId] = useState<string | null>(null);
 
+  // Post form state
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [excerpt, setExcerpt] = useState('');
@@ -72,6 +91,26 @@ const Admin = () => {
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Tag form state
+  const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+  const [editingTag, setEditingTag] = useState<Tag | null>(null);
+  const [tagName, setTagName] = useState('');
+  const [tagSlug, setTagSlug] = useState('');
+
+  // Settings form state
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroDescription, setHeroDescription] = useState('');
+  const [heroBadge, setHeroBadge] = useState('');
+  const [heroBackgroundImage, setHeroBackgroundImage] = useState<string | null>(null);
+  const [heroBackgroundType, setHeroBackgroundType] = useState<'gradient' | 'image'>('gradient');
+  const [typewriterEnabled, setTypewriterEnabled] = useState(true);
+  const [typewriterTitleSpeed, setTypewriterTitleSpeed] = useState(200);
+  const [typewriterDescSpeed, setTypewriterDescSpeed] = useState(80);
+  const [typewriterLoop, setTypewriterLoop] = useState(true);
+  const [typewriterLoopDelay, setTypewriterLoopDelay] = useState(3000);
+  const [uploadingHeroBg, setUploadingHeroBg] = useState(false);
+  const heroBgInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -94,6 +133,26 @@ const Admin = () => {
     }
   }, [editingPost]);
 
+  useEffect(() => {
+    if (heroSettings) {
+      setHeroTitle(heroSettings.title);
+      setHeroDescription(heroSettings.description);
+      setHeroBadge(heroSettings.badge);
+      setHeroBackgroundImage(heroSettings.backgroundImage);
+      setHeroBackgroundType(heroSettings.backgroundType);
+    }
+  }, [heroSettings]);
+
+  useEffect(() => {
+    if (typewriterSettings) {
+      setTypewriterEnabled(typewriterSettings.enabled);
+      setTypewriterTitleSpeed(typewriterSettings.titleSpeed);
+      setTypewriterDescSpeed(typewriterSettings.descSpeed);
+      setTypewriterLoop(typewriterSettings.loop);
+      setTypewriterLoopDelay(typewriterSettings.loopDelay);
+    }
+  }, [typewriterSettings]);
+
   const resetForm = () => {
     setTitle('');
     setSlug('');
@@ -105,8 +164,8 @@ const Admin = () => {
     setCoverImage(null);
   };
 
-  const generateSlug = (title: string) => {
-    return title
+  const generateSlug = (text: string) => {
+    return text
       .toLowerCase()
       .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
       .replace(/^-+|-+$/g, '');
@@ -155,6 +214,46 @@ const Admin = () => {
       toast.error('上传失败: ' + error.message);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleHeroBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('请选择图片文件');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('图片大小不能超过 5MB');
+      return;
+    }
+
+    setUploadingHeroBg(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `hero-bg-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('covers')
+        .getPublicUrl(fileName);
+
+      setHeroBackgroundImage(publicUrl);
+      setHeroBackgroundType('image');
+      toast.success('背景图片上传成功');
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error('上传失败: ' + error.message);
+    } finally {
+      setUploadingHeroBg(false);
     }
   };
 
@@ -241,6 +340,84 @@ const Admin = () => {
     }
   };
 
+  // Tag handlers
+  const handleTagNameChange = (value: string) => {
+    setTagName(value);
+    if (!editingTag) {
+      setTagSlug(generateSlug(value));
+    }
+  };
+
+  const handleTagSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tagName || !tagSlug) {
+      toast.error("请填写所有字段");
+      return;
+    }
+
+    try {
+      if (editingTag) {
+        await updateTag.mutateAsync({ id: editingTag.id, name: tagName, slug: tagSlug });
+        toast.success("标签已更新");
+      } else {
+        await createTag.mutateAsync({ name: tagName, slug: tagSlug });
+        toast.success("标签已创建");
+      }
+      setIsTagDialogOpen(false);
+      setEditingTag(null);
+      setTagName('');
+      setTagSlug('');
+    } catch (error: any) {
+      if (error.message?.includes('duplicate')) {
+        toast.error("标签已存在");
+      } else {
+        toast.error("保存失败");
+      }
+    }
+  };
+
+  const handleDeleteTag = async () => {
+    if (!deleteTagId) return;
+    try {
+      await deleteTagMutation.mutateAsync(deleteTagId);
+      toast.success("标签已删除");
+      setDeleteTagId(null);
+    } catch (error) {
+      toast.error("删除失败");
+    }
+  };
+
+  // Settings handlers
+  const handleSaveHeroSettings = async () => {
+    try {
+      await updateHeroSettings.mutateAsync({
+        title: heroTitle,
+        description: heroDescription,
+        badge: heroBadge,
+        backgroundImage: heroBackgroundImage,
+        backgroundType: heroBackgroundType,
+      });
+      toast.success("Hero设置已保存");
+    } catch (error) {
+      toast.error("保存失败");
+    }
+  };
+
+  const handleSaveTypewriterSettings = async () => {
+    try {
+      await updateTypewriterSettings.mutateAsync({
+        enabled: typewriterEnabled,
+        titleSpeed: typewriterTitleSpeed,
+        descSpeed: typewriterDescSpeed,
+        loop: typewriterLoop,
+        loopDelay: typewriterLoopDelay,
+      });
+      toast.success("打字机设置已保存");
+    } catch (error) {
+      toast.error("保存失败");
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
@@ -267,7 +444,6 @@ const Admin = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
-            {/* Left side */}
             <div className="flex items-center gap-6">
               <Link 
                 to="/" 
@@ -285,7 +461,6 @@ const Admin = () => {
               </div>
             </div>
             
-            {/* Right side */}
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-2 bg-secondary/50 rounded-full px-3 py-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -317,22 +492,85 @@ const Admin = () => {
             <Link to="/" className="text-primary hover:underline">返回首页</Link>
           </div>
         ) : (
-          <Tabs defaultValue="posts" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+          <Tabs defaultValue="dashboard" className="space-y-6">
+            <TabsList className="grid w-full max-w-2xl grid-cols-5">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden sm:inline">仪表盘</span>
+              </TabsTrigger>
               <TabsTrigger value="posts" className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                文章管理
+                <span className="hidden sm:inline">文章</span>
               </TabsTrigger>
               <TabsTrigger value="comments" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
-                评论管理
+                <span className="hidden sm:inline">评论</span>
                 {pendingComments.length > 0 && (
-                  <span className="ml-1 bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">
+                  <span className="bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">
                     {pendingComments.length}
                   </span>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="tags" className="flex items-center gap-2">
+                <TagIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">标签</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">设置</span>
+              </TabsTrigger>
             </TabsList>
+
+            {/* Dashboard Tab */}
+            <TabsContent value="dashboard" className="space-y-6">
+              <h2 className="font-serif text-2xl font-bold text-foreground">仪表盘</h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatCard
+                  label="文章总数"
+                  value={stats?.totalPosts || 0}
+                  subLabel={`已发布 ${stats?.publishedPosts || 0} / 草稿 ${stats?.draftPosts || 0}`}
+                  icon={<FileText className="w-5 h-5" />}
+                />
+                <StatCard
+                  label="评论总数"
+                  value={stats?.totalComments || 0}
+                  subLabel={`待审核 ${stats?.pendingComments || 0}`}
+                  icon={<MessageSquare className="w-5 h-5" />}
+                />
+                <StatCard
+                  label="总访问量"
+                  value={stats?.totalViews || 0}
+                  icon={<TrendingUp className="w-5 h-5" />}
+                />
+                <StatCard
+                  label="总点赞"
+                  value={stats?.totalLikes || 0}
+                  icon={<Heart className="w-5 h-5" />}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="blog-card">
+                  <h3 className="font-semibold mb-4">标签统计</h3>
+                  <p className="text-3xl font-bold text-primary">{stats?.totalTags || 0}</p>
+                  <p className="text-sm text-muted-foreground mt-1">个标签</p>
+                </div>
+                <div className="blog-card">
+                  <h3 className="font-semibold mb-4">快速操作</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => { setEditingPost(null); setIsEditorOpen(true); }}>
+                      <Plus className="w-4 h-4 mr-1" />
+                      新建文章
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setEditingTag(null); setTagName(''); setTagSlug(''); setIsTagDialogOpen(true); }}>
+                      <Plus className="w-4 h-4 mr-1" />
+                      新建标签
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
 
             {/* Posts Tab */}
             <TabsContent value="posts" className="space-y-6">
@@ -388,6 +626,10 @@ const Admin = () => {
                                   草稿
                                 </>
                               )}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" />
+                              {post.view_count}
                             </span>
                           </div>
                         </div>
@@ -465,11 +707,245 @@ const Admin = () => {
                 </div>
               )}
             </TabsContent>
+
+            {/* Tags Tab */}
+            <TabsContent value="tags" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="font-serif text-2xl font-bold text-foreground">
+                  标签管理 ({tags?.length || 0})
+                </h2>
+                <Button onClick={() => { setEditingTag(null); setTagName(''); setTagSlug(''); setIsTagDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  新建标签
+                </Button>
+              </div>
+
+              {tagsLoading ? (
+                <div className="text-center py-12 text-muted-foreground">加载中...</div>
+              ) : tags?.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  暂无标签，点击上方按钮创建
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {tags?.map((tag) => (
+                    <div key={tag.id} className="blog-card flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-foreground">{tag.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">/{tag.slug}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setEditingTag(tag); setTagName(tag.name); setTagSlug(tag.slug); setIsTagDialogOpen(true); }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteTagId(tag.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <h2 className="font-serif text-2xl font-bold text-foreground">网站设置</h2>
+              
+              <div className="grid gap-6">
+                {/* Hero Settings */}
+                <div className="blog-card space-y-4">
+                  <h3 className="font-semibold text-lg">Hero区域设置</h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>标题</Label>
+                      <Input
+                        value={heroTitle}
+                        onChange={(e) => setHeroTitle(e.target.value)}
+                        placeholder="墨迹随笔"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>徽章文字</Label>
+                      <Input
+                        value={heroBadge}
+                        onChange={(e) => setHeroBadge(e.target.value)}
+                        placeholder="欢迎来到我的博客"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>描述</Label>
+                    <Textarea
+                      value={heroDescription}
+                      onChange={(e) => setHeroDescription(e.target.value)}
+                      placeholder="在这里，我分享关于技术、生活与思考的点滴..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>背景类型</Label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={heroBackgroundType === 'gradient'}
+                          onChange={() => setHeroBackgroundType('gradient')}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">渐变背景</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={heroBackgroundType === 'image'}
+                          onChange={() => setHeroBackgroundType('image')}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">图片背景</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {heroBackgroundType === 'image' && (
+                    <div className="space-y-2">
+                      <Label>背景图片</Label>
+                      <div className="flex items-start gap-4">
+                        {heroBackgroundImage ? (
+                          <div className="relative group">
+                            <img 
+                              src={heroBackgroundImage} 
+                              alt="Background" 
+                              className="w-40 h-24 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setHeroBackgroundImage(null)}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => heroBgInputRef.current?.click()}
+                            disabled={uploadingHeroBg}
+                            className="w-40 h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                          >
+                            {uploadingHeroBg ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <>
+                                <Upload className="w-5 h-5" />
+                                <span className="text-xs">上传背景</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                        <input
+                          ref={heroBgInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleHeroBgUpload}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button onClick={handleSaveHeroSettings} disabled={updateHeroSettings.isPending}>
+                    <Save className="w-4 h-4 mr-2" />
+                    保存Hero设置
+                  </Button>
+                </div>
+
+                {/* Typewriter Settings */}
+                <div className="blog-card space-y-4">
+                  <h3 className="font-semibold text-lg">打字机效果设置</h3>
+                  
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="typewriter-enabled"
+                      checked={typewriterEnabled}
+                      onCheckedChange={setTypewriterEnabled}
+                    />
+                    <Label htmlFor="typewriter-enabled">启用打字机效果</Label>
+                  </div>
+
+                  {typewriterEnabled && (
+                    <>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>标题打字速度 (ms)</Label>
+                          <Input
+                            type="number"
+                            value={typewriterTitleSpeed}
+                            onChange={(e) => setTypewriterTitleSpeed(Number(e.target.value))}
+                            min={50}
+                            max={500}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>描述打字速度 (ms)</Label>
+                          <Input
+                            type="number"
+                            value={typewriterDescSpeed}
+                            onChange={(e) => setTypewriterDescSpeed(Number(e.target.value))}
+                            min={20}
+                            max={200}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="typewriter-loop"
+                          checked={typewriterLoop}
+                          onCheckedChange={setTypewriterLoop}
+                        />
+                        <Label htmlFor="typewriter-loop">循环播放</Label>
+                      </div>
+
+                      {typewriterLoop && (
+                        <div className="space-y-2">
+                          <Label>循环延迟 (ms)</Label>
+                          <Input
+                            type="number"
+                            value={typewriterLoopDelay}
+                            onChange={(e) => setTypewriterLoopDelay(Number(e.target.value))}
+                            min={1000}
+                            max={10000}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <Button onClick={handleSaveTypewriterSettings} disabled={updateTypewriterSettings.isPending}>
+                    <Save className="w-4 h-4 mr-2" />
+                    保存打字机设置
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
           </Tabs>
         )}
       </main>
 
-      {/* Editor Dialog */}
+      {/* Post Editor Dialog */}
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -619,6 +1095,43 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Tag Dialog */}
+      <Dialog open={isTagDialogOpen} onOpenChange={setIsTagDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingTag ? "编辑标签" : "新建标签"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleTagSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="tagName">标签名称</Label>
+              <Input
+                id="tagName"
+                value={tagName}
+                onChange={(e) => handleTagNameChange(e.target.value)}
+                placeholder="标签名称"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tagSlug">标签链接</Label>
+              <Input
+                id="tagSlug"
+                value={tagSlug}
+                onChange={(e) => setTagSlug(e.target.value)}
+                placeholder="tag-slug"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsTagDialogOpen(false)}>
+                取消
+              </Button>
+              <Button type="submit" disabled={createTag.isPending || updateTag.isPending}>
+                {createTag.isPending || updateTag.isPending ? "保存中..." : "保存"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Post Confirmation */}
       <AlertDialog open={!!deletePostId} onOpenChange={() => setDeletePostId(null)}>
         <AlertDialogContent>
@@ -654,9 +1167,39 @@ const Admin = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Tag Confirmation */}
+      <AlertDialog open={!!deleteTagId} onOpenChange={() => setDeleteTagId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除标签</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作无法撤销，标签将被永久删除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTag} className="bg-destructive text-destructive-foreground">
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
+
+// Stat Card Component
+const StatCard = ({ label, value, subLabel, icon }: { label: string; value: number; subLabel?: string; icon: React.ReactNode }) => (
+  <div className="blog-card">
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <div className="text-primary">{icon}</div>
+    </div>
+    <p className="text-3xl font-bold text-foreground">{value.toLocaleString()}</p>
+    {subLabel && <p className="text-xs text-muted-foreground mt-1">{subLabel}</p>}
+  </div>
+);
 
 // Comment Card Component
 const CommentCard = ({ 
