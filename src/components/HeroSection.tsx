@@ -18,7 +18,7 @@ const HeroSection = () => {
         </div>
         
         <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6">
-          <TypewriterText text="墨迹随笔" speed={200} />
+          <TypewriterText text="墨迹随笔" speed={200} loop loopDelay={3000} />
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
@@ -26,10 +26,12 @@ const HeroSection = () => {
             text="在这里，我分享关于技术、生活与思考的点滴。每一篇文章，都是一段旅程的记录。" 
             speed={80} 
             delay={1000}
+            loop
+            loopDelay={2000}
           />
         </p>
         
-        <div className="flex items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: "3s", animationFillMode: "backwards" }}>
+        <div className="flex items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: "0.5s", animationFillMode: "backwards" }}>
           <a
             href="#latest-posts"
             className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors"

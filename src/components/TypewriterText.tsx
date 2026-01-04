@@ -4,6 +4,8 @@ interface TypewriterTextProps {
   text: string;
   speed?: number;
   delay?: number;
+  loop?: boolean;
+  loopDelay?: number;
   className?: string;
   as?: keyof JSX.IntrinsicElements;
 }
@@ -11,16 +13,18 @@ interface TypewriterTextProps {
 const TypewriterText = ({ 
   text, 
   speed = 50, 
-  delay = 0, 
+  delay = 0,
+  loop = false,
+  loopDelay = 2000,
   className = '',
   as: Component = 'span'
 }: TypewriterTextProps) => {
-  const { displayText, isComplete } = useTypewriter({ text, speed, delay });
+  const { displayText } = useTypewriter({ text, speed, delay, loop, loopDelay });
 
   return (
     <Component className={className}>
       {displayText}
-      {!isComplete && <span className="animate-pulse">|</span>}
+      <span className="animate-pulse">|</span>
     </Component>
   );
 };
