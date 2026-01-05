@@ -2736,12 +2736,12 @@ const Admin = () => {
               {/* Author selector */}
               <div className="space-y-2">
                 <Label>作者</Label>
-                <Select value={selectedAuthorId || '_none'} onValueChange={(v) => setSelectedAuthorId(v === '_none' ? null : v)}>
+                <Select value={selectedAuthorId || ''} onValueChange={(v) => setSelectedAuthorId(v || null)}>
                   <SelectTrigger>
                     <SelectValue placeholder="选择作者（可选）" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_none">无作者</SelectItem>
+                    <SelectItem value="">无作者</SelectItem>
                     {authors?.map(author => (
                       <SelectItem key={author.id} value={author.id}>{author.name}</SelectItem>
                     ))}
@@ -3015,12 +3015,12 @@ const Admin = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>修改分类</Label>
-              <Select value={bulkEditCategory || '_none'} onValueChange={(v) => setBulkEditCategory(v === '_none' ? '' : v)}>
+              <Select value={bulkEditCategory} onValueChange={setBulkEditCategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择分类（可选）" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">不修改</SelectItem>
+                  <SelectItem value="">不修改</SelectItem>
                   {postCategories.map(cat => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
