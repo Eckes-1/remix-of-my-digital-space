@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Share2, Link2, Twitter, Facebook, Check, MessageCircle } from "lucide-react";
+import { Share2, Link2, Twitter, Facebook, Check, MessageCircle, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -22,14 +22,19 @@ const ShareButton = ({ title, url, className }: ShareButtonProps) => {
   const [copied, setCopied] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [activeQRTab, setActiveQRTab] = useState<string>('wechat');
+  const [isAnimating, setIsAnimating] = useState(false);
   
   const shareUrl = url || window.location.href;
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
+    setIsAnimating(true);
     toast({ title: "链接已复制", description: "文章链接已复制到剪贴板" });
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => {
+      setCopied(false);
+      setIsAnimating(false);
+    }, 2000);
   };
 
   const shareToTwitter = () => {
@@ -97,57 +102,89 @@ const ShareButton = ({ title, url, className }: ShareButtonProps) => {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300",
-            "border border-border hover:border-primary/50",
-            "bg-card text-muted-foreground hover:text-primary"
+            "group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300",
+            "border-2 overflow-hidden",
+            isOpen 
+              ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-400/50 text-blue-500" 
+              : "bg-card border-border hover:border-blue-300 text-muted-foreground hover:text-blue-500",
           )}
         >
-          <Share2 className="w-4 h-4" />
-          <span className="font-medium">分享</span>
+          {/* Animated background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          
+          <Share2 className={cn(
+            "w-5 h-5 transition-all duration-300 relative z-10",
+            isOpen && "rotate-12",
+            "group-hover:scale-110"
+          )} />
+          <span className="font-semibold relative z-10">分享</span>
         </button>
 
         {/* Dropdown */}
         {isOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-xl shadow-lg p-2 min-w-[160px] animate-fade-in">
+            <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-50 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl p-2 min-w-[180px] animate-scale-in">
+              {/* Arrow */}
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card/95 border-r border-b border-border/50 rotate-45" />
+              
               <button
                 onClick={copyLink}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200",
+                  copied 
+                    ? "bg-green-500/10 text-green-500" 
+                    : "text-foreground hover:bg-primary/10 hover:text-primary"
+                )}
               >
-                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
-                复制链接
+                {copied ? (
+                  <Check className="w-4 h-4 animate-scale-in" />
+                ) : (
+                  <Link2 className="w-4 h-4" />
+                )}
+                <span className="font-medium">{copied ? '已复制' : '复制链接'}</span>
               </button>
+              
+              <div className="my-1.5 mx-2 border-t border-border/50" />
+              
               <button
                 onClick={() => openQRDialog('wechat')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-foreground hover:bg-green-500/10 hover:text-green-500 transition-all duration-200"
               >
                 <MessageCircle className="w-4 h-4" />
-                微信二维码
+                <span className="font-medium">微信</span>
               </button>
               <button
                 onClick={() => openQRDialog('weibo')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-foreground hover:bg-red-500/10 hover:text-red-500 transition-all duration-200"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M9.82 13.87c-.21.55-.83.82-1.38.6-.55-.21-.82-.83-.6-1.38.21-.55.83-.82 1.38-.6.55.21.82.83.6 1.38zm1.17-1.55c-.08.2-.31.3-.51.22-.2-.08-.3-.31-.22-.51.08-.2.31-.3.51-.22.2.08.3.31.22.51zm.59 4.11c-1.67 1.36-3.57 1.45-4.25.2-.68-1.25.1-3.28 1.77-4.64 1.67-1.36 3.57-1.45 4.25-.2.68 1.25-.1 3.28-1.77 4.64zm7.02-3.63c-.27-1.98-2.39-3.4-4.78-3.22-.55.04-1.08.15-1.58.32.14-.47.22-.97.22-1.48 0-2.21-1.34-4-3-4s-3 1.79-3 4c0 .39.04.77.12 1.14C4.78 10.08 3 11.87 3 14c0 2.76 3.13 5 7 5s7-2.24 7-5c0-.42-.05-.82-.15-1.2 1.02-.25 1.82-.92 1.75-1.8zM20 5.5c0 1.38-1.12 2.5-2.5 2.5S15 6.88 15 5.5 16.12 3 17.5 3 20 4.12 20 5.5zm1 2.5c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1z"/>
                 </svg>
-                微博二维码
+                <span className="font-medium">微博</span>
               </button>
-              <div className="my-1 border-t border-border" />
+              
+              <div className="my-1.5 mx-2 border-t border-border/50" />
+              
               <button
                 onClick={shareToTwitter}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl text-sm text-foreground hover:bg-sky-500/10 hover:text-sky-500 transition-all duration-200"
               >
-                <Twitter className="w-4 h-4" />
-                Twitter
+                <div className="flex items-center gap-3">
+                  <Twitter className="w-4 h-4" />
+                  <span className="font-medium">Twitter</span>
+                </div>
+                <ExternalLink className="w-3 h-3 opacity-50" />
               </button>
               <button
                 onClick={shareToFacebook}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl text-sm text-foreground hover:bg-blue-600/10 hover:text-blue-600 transition-all duration-200"
               >
-                <Facebook className="w-4 h-4" />
-                Facebook
+                <div className="flex items-center gap-3">
+                  <Facebook className="w-4 h-4" />
+                  <span className="font-medium">Facebook</span>
+                </div>
+                <ExternalLink className="w-3 h-3 opacity-50" />
               </button>
             </div>
           </>
