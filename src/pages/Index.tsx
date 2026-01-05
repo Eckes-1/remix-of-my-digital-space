@@ -4,6 +4,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
 import BlogCard from "@/components/BlogCard";
+import BlogCardSkeleton from "@/components/BlogCardSkeleton";
+import SidebarSkeleton from "@/components/SidebarSkeleton";
 import SearchBar from "@/components/SearchBar";
 import TagCloud from "@/components/TagCloud";
 import PopularPosts from "@/components/PopularPosts";
@@ -46,7 +48,17 @@ const Index = () => {
             <div className="grid lg:grid-cols-4 gap-8">
               <div className="lg:col-span-3">
                 {isLoading ? (
-                  <div className="text-center py-12 text-muted-foreground">加载中...</div>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="animate-fade-in"
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        <BlogCardSkeleton />
+                      </div>
+                    ))}
+                  </div>
                 ) : displayPosts?.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">暂无文章</div>
                 ) : (
@@ -73,9 +85,15 @@ const Index = () => {
                 )}
               </div>
               
-              <aside className="lg:col-span-1 space-y-6">
-                <TagCloud />
-                <PopularPosts />
+              <aside className="lg:col-span-1">
+                {isLoading ? (
+                  <SidebarSkeleton />
+                ) : (
+                  <div className="space-y-6">
+                    <TagCloud />
+                    <PopularPosts />
+                  </div>
+                )}
               </aside>
             </div>
           </div>
