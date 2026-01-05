@@ -161,24 +161,69 @@ const BlogPost = () => {
       {/* Resume Reading Prompt */}
       {showResumePrompt && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-          <div className="bg-card border border-border rounded-xl shadow-xl p-4 flex items-center gap-4">
-            <div className="p-2 rounded-full bg-primary/10">
-              <BookOpen className="w-5 h-5 text-primary" />
+          <div className="bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl p-5 flex items-center gap-5">
+            {/* Progress ring */}
+            <div className="relative">
+              <svg className="w-14 h-14 -rotate-90">
+                <circle
+                  cx="28"
+                  cy="28"
+                  r="24"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                  className="text-muted/20"
+                />
+                <circle
+                  cx="28"
+                  cy="28"
+                  r="24"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeDasharray={`${(lastReadInfo?.progress || 0) * 1.51} 151`}
+                  strokeLinecap="round"
+                  className="text-primary transition-all duration-500"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-primary" />
+              </div>
             </div>
-            <div>
-              <p className="font-medium text-foreground">继续上次阅读？</p>
+            <div className="flex-1">
+              <p className="font-semibold text-foreground">继续上次阅读？</p>
               <p className="text-sm text-muted-foreground">
-                {lastReadInfo && `上次阅读到 ${Math.round(lastReadInfo.progress)}%`}
+                已阅读 <span className="font-medium text-primary">{Math.round(lastReadInfo?.progress || 0)}%</span>
+                {lastReadInfo?.lastRead && (
+                  <span className="ml-1">
+                    · {new Date(lastReadInfo.lastRead).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleStartFromBeginning}>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={handleStartFromBeginning}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 从头开始
               </Button>
-              <Button size="sm" onClick={handleResumeReading}>
+              <Button 
+                size="sm" 
+                onClick={handleResumeReading}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+              >
                 继续阅读
               </Button>
             </div>
+            <button 
+              onClick={handleStartFromBeginning}
+              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors"
+            >
+              <X className="w-3 h-3 text-muted-foreground" />
+            </button>
           </div>
         </div>
       )}
