@@ -223,17 +223,34 @@
 
 @layer components {
   .blog-container {
-    @apply max-w-4xl mx-auto px-6;
+    @apply max-w-4xl mx-auto px-4 sm:px-6;
   }
 
   .blog-card {
-    @apply bg-card rounded-[var(--radius)] p-6 transition-all duration-300;
+    @apply bg-card rounded-[var(--radius)] p-4 sm:p-6 transition-all duration-300;
     box-shadow: var(--shadow-soft);
   }
 
   .blog-card:hover {
     box-shadow: var(--shadow-hover);
     transform: translateY(-2px);
+  }
+
+  /* Mobile-specific touch targets */
+  @media (max-width: 640px) {
+    .blog-card:hover {
+      transform: none;
+    }
+    
+    button, a, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Ensure tap targets in nav and controls are accessible */
+    nav button, nav a {
+      min-height: 44px;
+    }
   }
 
   .prose-blog {

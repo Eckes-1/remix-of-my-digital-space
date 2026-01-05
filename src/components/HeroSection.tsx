@@ -20,7 +20,7 @@ const HeroSection = () => {
   const loopDelay = typewriterSettings?.loopDelay || 3000;
 
   return (
-    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[70vh] sm:min-h-[85vh] flex items-center justify-center overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         {backgroundType === 'image' && backgroundImage ? (
@@ -40,20 +40,20 @@ const HeroSection = () => {
           </>
         ) : (
           <>
-            <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
+            <div className="absolute top-10 sm:top-20 left-5 sm:left-10 w-48 sm:w-72 h-48 sm:h-72 bg-primary/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-10 sm:bottom-20 right-5 sm:right-10 w-64 sm:w-96 h-64 sm:h-96 bg-accent/5 rounded-full blur-3xl" />
           </>
         )}
       </div>
       
-      <div className="blog-container text-center py-20">
+      <div className="blog-container text-center py-12 sm:py-20 px-4">
         <div className="animate-fade-in">
-          <span className="inline-block text-sm font-medium text-primary bg-primary/10 px-4 py-2 rounded-full mb-6">
+          <span className="inline-block text-xs sm:text-sm font-medium text-primary bg-primary/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-4 sm:mb-6">
             {badge}
           </span>
         </div>
         
-        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6">
+        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 sm:mb-6 px-2">
           {typewriterEnabled ? (
             <TypewriterText text={title} speed={titleSpeed} loop={loop} loopDelay={loopDelay} />
           ) : (
@@ -61,7 +61,7 @@ const HeroSection = () => {
           )}
         </h1>
         
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+        <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed px-2">
           {typewriterEnabled ? (
             <TypewriterText 
               text={description} 
@@ -78,7 +78,7 @@ const HeroSection = () => {
         <div className="flex items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: "0.5s", animationFillMode: "backwards" }}>
           <a
             href="#latest-posts"
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-medium hover:bg-primary/90 transition-colors text-sm sm:text-base"
           >
             开始阅读
             <ArrowDown className="w-4 h-4" />

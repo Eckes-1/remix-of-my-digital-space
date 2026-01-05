@@ -158,24 +158,26 @@ const BlogPost = () => {
     )}>
       {!isReadingMode && <Header />}
       
-      {/* Resume Reading Prompt */}
+      {/* Resume Reading Prompt - mobile optimized */}
       {showResumePrompt && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-          <div className="bg-card border border-border rounded-xl shadow-xl p-4 flex items-center gap-4">
-            <div className="p-2 rounded-full bg-primary/10">
-              <BookOpen className="w-5 h-5 text-primary" />
+        <div className="fixed top-16 sm:top-20 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 animate-fade-in">
+          <div className="bg-card border border-border rounded-xl shadow-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="p-2 rounded-full bg-primary/10 flex-shrink-0">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              </div>
+              <div className="flex-1 sm:flex-initial">
+                <p className="font-medium text-foreground text-sm sm:text-base">继续上次阅读？</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {lastReadInfo && `上次阅读到 ${Math.round(lastReadInfo.progress)}%`}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium text-foreground">继续上次阅读？</p>
-              <p className="text-sm text-muted-foreground">
-                {lastReadInfo && `上次阅读到 ${Math.round(lastReadInfo.progress)}%`}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleStartFromBeginning}>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button size="sm" variant="outline" onClick={handleStartFromBeginning} className="flex-1 sm:flex-initial text-xs sm:text-sm">
                 从头开始
               </Button>
-              <Button size="sm" onClick={handleResumeReading}>
+              <Button size="sm" onClick={handleResumeReading} className="flex-1 sm:flex-initial text-xs sm:text-sm">
                 继续阅读
               </Button>
             </div>
@@ -183,19 +185,21 @@ const BlogPost = () => {
         </div>
       )}
 
-      {/* Reading Mode Controls */}
+      {/* Reading Mode Controls - mobile optimized */}
       {isReadingMode && (
-        <div className="fixed top-4 right-4 z-50 animate-fade-in">
-          <ReadingModeButton 
-            isActive={isReadingMode}
-            onToggle={toggleReadingMode}
-            fontSize={fontSize}
-            onIncreaseFontSize={increaseFontSize}
-            onDecreaseFontSize={decreaseFontSize}
-            onResetFontSize={resetFontSize}
-            minFontSize={minFontSize}
-            maxFontSize={maxFontSize}
-          />
+        <div className="fixed top-2 sm:top-4 right-2 sm:right-4 left-2 sm:left-auto z-50 animate-fade-in">
+          <div className="flex justify-end">
+            <ReadingModeButton 
+              isActive={isReadingMode}
+              onToggle={toggleReadingMode}
+              fontSize={fontSize}
+              onIncreaseFontSize={increaseFontSize}
+              onDecreaseFontSize={decreaseFontSize}
+              onResetFontSize={resetFontSize}
+              minFontSize={minFontSize}
+              maxFontSize={maxFontSize}
+            />
+          </div>
         </div>
       )}
       
@@ -361,8 +365,8 @@ const BlogPost = () => {
                 })}
               </div>
               
-              {/* Like, Share & Bookmark Buttons */}
-              <div className="flex items-center justify-center gap-3 mt-10 mb-8">
+              {/* Like, Share & Bookmark Buttons - mobile optimized */}
+              <div className="flex items-center justify-center gap-2 sm:gap-3 mt-8 sm:mt-10 mb-6 sm:mb-8 flex-wrap">
                 <LikeButton postId={post.id} />
                 <ShareButton title={post.title} />
                 <BookmarkButton 
