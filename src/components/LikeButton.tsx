@@ -60,8 +60,8 @@ const LikeButton = ({ postId, className }: LikeButtonProps) => {
       onClick={handleClick}
       disabled={isLoading}
       className={cn(
-        "relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300",
-        "border-2 overflow-visible",
+        "relative inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all duration-300",
+        "border-2 overflow-visible text-sm sm:text-base",
         hasLiked 
           ? "bg-gradient-to-r from-rose-500/20 to-pink-500/20 border-rose-400/50 text-rose-500 dark:text-rose-400" 
           : "bg-card border-border hover:border-rose-300 text-muted-foreground hover:text-rose-500",
@@ -100,7 +100,7 @@ const LikeButton = ({ postId, className }: LikeButtonProps) => {
 
       <Heart 
         className={cn(
-          "w-5 h-5 transition-all duration-300",
+          "w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300",
           hasLiked && "fill-rose-500 text-rose-500 dark:fill-rose-400 dark:text-rose-400",
           isAnimating && "animate-heartbeat",
           !isLoading && !hasLiked && "group-hover:scale-110"
