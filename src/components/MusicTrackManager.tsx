@@ -236,27 +236,28 @@ const MusicTrackManager = () => {
           {tracks.map((track, index) => (
             <div
               key={track.id}
-              className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg border border-border"
+              className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-secondary/30 rounded-lg border border-border"
             >
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground hidden sm:block">
                 <GripVertical className="w-4 h-4" />
               </div>
-              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] sm:text-xs font-medium flex-shrink-0">
                 {index + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-foreground truncate">{track.title}</div>
-                <div className="text-sm text-muted-foreground truncate">{track.artist}</div>
+                <div className="font-medium text-foreground truncate text-sm sm:text-base">{track.title}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground truncate">{track.artist}</div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <Switch
                   checked={track.is_active}
                   onCheckedChange={() => handleToggleActive(track)}
+                  className="scale-90 sm:scale-100"
                 />
-                <Button variant="ghost" size="icon" onClick={() => openEditDialog(track)}>
+                <Button variant="ghost" size="icon" onClick={() => openEditDialog(track)} className="h-8 w-8">
                   <Edit className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => setDeleteId(track.id)}>
+                <Button variant="ghost" size="icon" onClick={() => setDeleteId(track.id)} className="h-8 w-8">
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>
               </div>
@@ -269,9 +270,9 @@ const MusicTrackManager = () => {
         </div>
       )}
 
-      {/* Add/Edit Dialog */}
+      {/* Add/Edit Dialog - Mobile optimized */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingTrack ? '编辑曲目' : '添加曲目'}</DialogTitle>
           </DialogHeader>
@@ -399,17 +400,18 @@ const MusicTrackManager = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="sortOrder">排序权重</Label>
                 <Input
                   id="sortOrder"
                   type="number"
                   value={sortOrder}
                   onChange={(e) => setSortOrder(Number(e.target.value))}
+                  className="h-10"
                 />
               </div>
-              <div className="flex items-center gap-2 pt-6">
+              <div className="flex items-center gap-2 sm:pt-6">
                 <Switch
                   id="isActive"
                   checked={isActive}
@@ -418,11 +420,11 @@ const MusicTrackManager = () => {
                 <Label htmlFor="isActive">启用</Label>
               </div>
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
                 取消
               </Button>
-              <Button type="submit">
+              <Button type="submit" className="w-full sm:w-auto">
                 <Check className="w-4 h-4 mr-1" />
                 {editingTrack ? '保存' : '添加'}
               </Button>
@@ -431,18 +433,18 @@ const MusicTrackManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation - Mobile optimized */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
             <AlertDialogDescription>
               确定要删除这个曲目吗？此操作无法撤销。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>删除</AlertDialogAction>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="w-full sm:w-auto">删除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

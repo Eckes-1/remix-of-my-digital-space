@@ -169,16 +169,19 @@ const StatsCharts = () => {
   }, [dateRange, customStartDate, customEndDate]);
 
   return (
-    <div className="space-y-6">
-      {/* Date Range Selector */}
-      <div className="flex flex-wrap items-center gap-2 p-4 bg-card rounded-xl border border-border">
-        <Filter className="w-4 h-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground mr-2">时间范围:</span>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Date Range Selector - Mobile optimized */}
+      <div className="flex flex-col gap-3 p-3 sm:p-4 bg-card rounded-xl border border-border">
+        <div className="flex flex-wrap items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs sm:text-sm text-muted-foreground">时间范围:</span>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             variant={dateRange === '7d' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDateRange('7d')}
+            className="text-xs sm:text-sm h-8"
           >
             近7天
           </Button>
@@ -186,6 +189,7 @@ const StatsCharts = () => {
             variant={dateRange === '30d' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDateRange('30d')}
+            className="text-xs sm:text-sm h-8"
           >
             近30天
           </Button>
@@ -193,6 +197,7 @@ const StatsCharts = () => {
             variant={dateRange === '90d' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDateRange('90d')}
+            className="text-xs sm:text-sm h-8"
           >
             近90天
           </Button>
@@ -202,7 +207,7 @@ const StatsCharts = () => {
               <Button
                 variant={dateRange === 'custom' ? 'default' : 'outline'}
                 size="sm"
-                className="gap-1"
+                className="gap-1 text-xs sm:text-sm h-8"
               >
                 <Calendar className="w-3 h-3" />
                 自定义
@@ -212,7 +217,7 @@ const StatsCharts = () => {
               <div className="p-3 border-b border-border">
                 <p className="text-sm font-medium">选择日期范围</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 max-h-[70vh] overflow-auto">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">开始日期</p>
                   <CalendarComponent
@@ -244,10 +249,10 @@ const StatsCharts = () => {
           </Popover>
         </div>
         
-        {/* Show filtered period stats */}
-        <div className="ml-auto flex items-center gap-4 text-sm">
+        {/* Show filtered period stats - Mobile optimized */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm border-t border-border pt-3">
           <span className="text-muted-foreground">
-            {dateRangeLabel}: <span className="text-foreground font-medium">{filteredStats.posts.length}</span> 篇文章
+            {dateRangeLabel}: <span className="text-foreground font-medium">{filteredStats.posts.length}</span> 篇
           </span>
           <span className="text-muted-foreground">
             <Eye className="w-3 h-3 inline mr-1" />
@@ -260,127 +265,127 @@ const StatsCharts = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl p-4 border border-blue-500/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/20">
-              <Eye className="w-5 h-5 text-blue-500" />
+      {/* Summary Cards - Mobile optimized */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+        <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl p-3 sm:p-4 border border-blue-500/20">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-blue-500/20 flex-shrink-0">
+              <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{summaryStats.totalViews.toLocaleString()}</p>
-              <p className="text-sm text-muted-foreground">总阅读量</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/5 rounded-xl p-4 border border-pink-500/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-pink-500/20">
-              <Heart className="w-5 h-5 text-pink-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{summaryStats.totalLikes.toLocaleString()}</p>
-              <p className="text-sm text-muted-foreground">总点赞数</p>
+            <div className="min-w-0">
+              <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{summaryStats.totalViews.toLocaleString()}</p>
+              <p className="text-[10px] sm:text-sm text-muted-foreground">总阅读量</p>
             </div>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-xl p-4 border border-green-500/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/20">
-              <FileText className="w-5 h-5 text-green-500" />
+        <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/5 rounded-xl p-3 sm:p-4 border border-pink-500/20">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-pink-500/20 flex-shrink-0">
+              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{summaryStats.totalPosts}</p>
-              <p className="text-sm text-muted-foreground">已发布文章</p>
+            <div className="min-w-0">
+              <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{summaryStats.totalLikes.toLocaleString()}</p>
+              <p className="text-[10px] sm:text-sm text-muted-foreground">总点赞数</p>
             </div>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-xl p-4 border border-purple-500/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/20">
-              <TrendingUp className="w-5 h-5 text-purple-500" />
+        <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-xl p-3 sm:p-4 border border-green-500/20">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-green-500/20 flex-shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{summaryStats.avgViews}</p>
-              <p className="text-sm text-muted-foreground">平均阅读量</p>
+            <div className="min-w-0">
+              <p className="text-lg sm:text-2xl font-bold text-foreground">{summaryStats.totalPosts}</p>
+              <p className="text-[10px] sm:text-sm text-muted-foreground">已发布文章</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-xl p-3 sm:p-4 border border-purple-500/20">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/20 flex-shrink-0">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-lg sm:text-2xl font-bold text-foreground">{summaryStats.avgViews}</p>
+              <p className="text-[10px] sm:text-sm text-muted-foreground">平均阅读量</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      {/* Charts Grid - Mobile optimized */}
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Top Viewed Posts */}
-        <div className="bg-card rounded-xl border border-border p-4">
-          <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <h3 className="font-medium text-foreground mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
             <Eye className="w-4 h-4 text-primary" />
             热门文章排行 (阅读量)
           </h3>
           {topViewedPosts.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topViewedPosts} layout="vertical" margin={{ left: 0, right: 20 }}>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={topViewedPosts} layout="vertical" margin={{ left: 0, right: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
                 <YAxis 
                   dataKey="name" 
                   type="category" 
-                  width={100} 
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} 
+                  width={80} 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="views" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="阅读量" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
               暂无数据
             </div>
           )}
         </div>
 
         {/* Top Liked Posts */}
-        <div className="bg-card rounded-xl border border-border p-4">
-          <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <h3 className="font-medium text-foreground mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
             <Heart className="w-4 h-4 text-pink-500" />
             热门文章排行 (点赞数)
           </h3>
           {topLikedPosts.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topLikedPosts} layout="vertical" margin={{ left: 0, right: 20 }}>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={topLikedPosts} layout="vertical" margin={{ left: 0, right: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
                 <YAxis 
                   dataKey="name" 
                   type="category" 
-                  width={100} 
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} 
+                  width={80} 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="likes" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} name="点赞数" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
               暂无数据
             </div>
           )}
         </div>
 
         {/* Category Distribution */}
-        <div className="bg-card rounded-xl border border-border p-4">
-          <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <h3 className="font-medium text-foreground mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
             <FileText className="w-4 h-4 text-primary" />
             分类分布
           </h3>
           {categoryData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={categoryData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
+                  innerRadius={40}
+                  outerRadius={80}
                   paddingAngle={2}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
@@ -393,27 +398,27 @@ const StatsCharts = () => {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
               暂无数据
             </div>
           )}
         </div>
 
-        {/* Publishing Trend */}
-        <div className="bg-card rounded-xl border border-border p-4">
-          <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
+        {/* Publishing Trend - Mobile optimized */}
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <h3 className="font-medium text-foreground mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
             <Calendar className="w-4 h-4 text-primary" />
             发布趋势 ({dateRangeLabel})
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={publishTrend} margin={{ left: 0, right: 20 }}>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={publishTrend} margin={{ left: 0, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
                 dataKey="date" 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} 
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
                 interval="preserveStartEnd"
               />
-              <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} allowDecimals={false} />
+              <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} allowDecimals={false} />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--popover))', 
@@ -427,8 +432,8 @@ const StatsCharts = () => {
                 dataKey="发布数" 
                 stroke="hsl(var(--primary))" 
                 strokeWidth={2}
-                dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 4 }}
-                activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
+                dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 3 }}
+                activeDot={{ r: 5, fill: 'hsl(var(--primary))' }}
               />
             </LineChart>
           </ResponsiveContainer>
