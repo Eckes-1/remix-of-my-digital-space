@@ -176,7 +176,7 @@ const BlogPost = () => {
 
   return (
     <div className={cn(
-      "min-h-screen flex flex-col transition-all duration-500",
+      "min-h-screen flex flex-col transition-all duration-500 overflow-x-hidden",
       isReadingMode && "bg-[#f9f7f1] dark:bg-[#1a1a1a]"
     )}>
       {!isReadingMode && <Header />}
@@ -451,9 +451,9 @@ const BlogPost = () => {
               </div>
               
               {/* Like, Share & Bookmark Buttons */}
-              <div className="flex flex-col items-center justify-center gap-4 mt-12 mb-10 py-8 border-t border-b border-border/50">
+              <div className="flex flex-col items-center justify-center gap-4 mt-12 mb-10 py-8 border-t border-b border-border/50 overflow-hidden">
                 <p className="text-sm text-muted-foreground mb-2">觉得文章不错？支持一下 👇</p>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 w-full">
                   <LikeButton postId={post.id} />
                   <ShareButton title={post.title} />
                   <BookmarkButton 
