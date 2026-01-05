@@ -47,8 +47,8 @@ const BookmarkButton = ({ post, className, showLabel = false }: BookmarkButtonPr
     <button
       onClick={handleClick}
       className={cn(
-        "group relative inline-flex items-center gap-2 transition-all duration-300 overflow-visible",
-        "px-4 sm:px-5 py-2.5 rounded-full border-2 whitespace-nowrap",
+        "group relative inline-flex items-center gap-1.5 sm:gap-2 transition-all duration-300 overflow-visible",
+        "px-3 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 whitespace-nowrap text-sm sm:text-base",
         bookmarked 
           ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-400/50 text-amber-500 dark:text-amber-400" 
           : "bg-card border-border hover:border-amber-300 text-muted-foreground hover:text-amber-500",
@@ -74,14 +74,14 @@ const BookmarkButton = ({ post, className, showLabel = false }: BookmarkButtonPr
       {bookmarked ? (
         <BookmarkCheck 
           className={cn(
-            "w-5 h-5 flex-shrink-0 fill-current transition-all duration-300",
+            "w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 fill-current transition-all duration-300",
             isAnimating && "animate-bookmark-pop"
           )} 
         />
       ) : (
         <Bookmark 
           className={cn(
-            "w-5 h-5 flex-shrink-0 transition-all duration-300",
+            "w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300",
             "group-hover:scale-110"
           )} 
         />
