@@ -1,22 +1,25 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Monitor } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ThemeToggle = () => {
-  const { setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme, theme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleToggle = () => {
-    // Add transition class to html element
+  const handleThemeChange = (newTheme: string) => {
     document.documentElement.classList.add('theme-transitioning');
-    
-    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
-    
-    // Remove transition class after animation completes
+    setTheme(newTheme);
     setTimeout(() => {
       document.documentElement.classList.remove('theme-transitioning');
     }, 500);
@@ -31,107 +34,162 @@ const ThemeToggle = () => {
   }
 
   const isDark = resolvedTheme === 'dark';
+  const isSystem = theme === 'system';
 
   return (
-    <button
-      onClick={handleToggle}
-      className={cn(
-        "relative w-16 h-9 rounded-full transition-all duration-500 p-1 overflow-hidden",
-        "shadow-inner",
-        isDark 
-          ? "bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900" 
-          : "bg-gradient-to-br from-sky-200 via-amber-100 to-sky-200"
-      )}
-      aria-label={isDark ? "切换到浅色模式" : "切换到深色模式"}
-    >
-      {/* Background effects */}
-      <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-        {/* Stars for dark mode */}
-        <div className={cn(
-          "absolute inset-0 transition-all duration-700",
-          isDark ? "opacity-100 scale-100" : "opacity-0 scale-50"
-        )}>
-          {[...Array(6)].map((_, i) => (
-            <span
-              key={i}
-              className="absolute w-0.5 h-0.5 bg-white rounded-full animate-twinkle"
-              style={{
-                left: `${15 + i * 12}%`,
-                top: `${20 + (i % 3) * 25}%`,
-                animationDelay: `${i * 0.3}s`,
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* Clouds for light mode */}
-        <div className={cn(
-          "absolute inset-0 transition-all duration-700",
-          isDark ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0"
-        )}>
-          <span className="absolute top-1 right-3 w-4 h-2 bg-white/80 rounded-full blur-[1px]" />
-          <span className="absolute bottom-2 right-1 w-3 h-1.5 bg-white/60 rounded-full blur-[1px]" />
-          <span className="absolute top-2.5 left-8 w-2 h-1 bg-white/40 rounded-full blur-[1px]" />
-        </div>
-      </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            "relative w-16 h-9 rounded-full transition-all duration-500 p-1 overflow-hidden",
+            "shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/50",
+            isDark 
+              ? "bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900" 
+              : "bg-gradient-to-br from-sky-200 via-amber-100 to-sky-200"
+          )}
+          aria-label="切换主题"
+        >
+          {/* Background effects */}
+          <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+            {/* Stars for dark mode */}
+            <div className={cn(
+              "absolute inset-0 transition-all duration-700",
+              isDark ? "opacity-100 scale-100" : "opacity-0 scale-50"
+            )}>
+              {[...Array(6)].map((_, i) => (
+                <span
+                  key={i}
+                  className="absolute w-0.5 h-0.5 bg-white rounded-full animate-twinkle"
+                  style={{
+                    left: `${15 + i * 12}%`,
+                    top: `${20 + (i % 3) * 25}%`,
+                    animationDelay: `${i * 0.3}s`,
+                  }}
+                />
+              ))}
+            </div>
+            
+            {/* Clouds for light mode */}
+            <div className={cn(
+              "absolute inset-0 transition-all duration-700",
+              isDark ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0"
+            )}>
+              <span className="absolute top-1 right-3 w-4 h-2 bg-white/80 rounded-full blur-[1px]" />
+              <span className="absolute bottom-2 right-1 w-3 h-1.5 bg-white/60 rounded-full blur-[1px]" />
+              <span className="absolute top-2.5 left-8 w-2 h-1 bg-white/40 rounded-full blur-[1px]" />
+            </div>
+          </div>
 
-      {/* Toggle circle */}
-      <div
-        className={cn(
-          "relative w-7 h-7 rounded-full transition-all duration-500 ease-out",
-          "shadow-lg flex items-center justify-center",
-          isDark 
-            ? "translate-x-7 bg-gradient-to-br from-slate-200 to-slate-300" 
-            : "translate-x-0 bg-gradient-to-br from-amber-300 to-orange-400"
-        )}
-      >
-        {/* Moon features */}
-        <div className={cn(
-          "absolute inset-0 rounded-full transition-all duration-500 overflow-hidden",
-          isDark ? "opacity-100" : "opacity-0"
-        )}>
-          <div className="absolute top-1 left-1.5 w-2 h-2 rounded-full bg-slate-400/40" />
-          <div className="absolute bottom-2 right-1.5 w-1.5 h-1.5 rounded-full bg-slate-400/30" />
-          <div className="absolute top-3 right-2 w-1 h-1 rounded-full bg-slate-400/20" />
-        </div>
-        
-        {/* Sun rays */}
-        <div className={cn(
-          "absolute inset-0 transition-all duration-500",
-          isDark ? "opacity-0 scale-0 rotate-180" : "opacity-100 scale-100 rotate-0"
-        )}>
-          {[...Array(8)].map((_, i) => (
-            <span
-              key={i}
-              className="absolute w-0.5 h-1.5 bg-orange-400 rounded-full origin-center"
-              style={{
-                left: '50%',
-                top: '50%',
-                transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-12px)`,
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* Inner glow */}
-        <div className={cn(
-          "w-4 h-4 rounded-full transition-all duration-300",
-          isDark 
-            ? "bg-slate-100" 
-            : "bg-gradient-to-br from-yellow-200 to-orange-300"
-        )} />
-      </div>
+          {/* Toggle circle */}
+          <div
+            className={cn(
+              "relative w-7 h-7 rounded-full transition-all duration-500 ease-out",
+              "shadow-lg flex items-center justify-center",
+              isSystem 
+                ? "translate-x-3.5 bg-gradient-to-br from-violet-400 to-indigo-500"
+                : isDark 
+                  ? "translate-x-7 bg-gradient-to-br from-slate-200 to-slate-300" 
+                  : "translate-x-0 bg-gradient-to-br from-amber-300 to-orange-400"
+            )}
+          >
+            {/* System icon */}
+            <div className={cn(
+              "absolute inset-0 rounded-full flex items-center justify-center transition-all duration-500",
+              isSystem ? "opacity-100" : "opacity-0"
+            )}>
+              <Monitor className="w-3.5 h-3.5 text-white" />
+            </div>
 
-      <style>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.5); }
-        }
-        .animate-twinkle {
-          animation: twinkle 2s ease-in-out infinite;
-        }
-      `}</style>
-    </button>
+            {/* Moon features */}
+            <div className={cn(
+              "absolute inset-0 rounded-full transition-all duration-500 overflow-hidden",
+              isDark && !isSystem ? "opacity-100" : "opacity-0"
+            )}>
+              <div className="absolute top-1 left-1.5 w-2 h-2 rounded-full bg-slate-400/40" />
+              <div className="absolute bottom-2 right-1.5 w-1.5 h-1.5 rounded-full bg-slate-400/30" />
+              <div className="absolute top-3 right-2 w-1 h-1 rounded-full bg-slate-400/20" />
+            </div>
+            
+            {/* Sun rays */}
+            <div className={cn(
+              "absolute inset-0 transition-all duration-500",
+              !isDark && !isSystem ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-0 rotate-180"
+            )}>
+              {[...Array(8)].map((_, i) => (
+                <span
+                  key={i}
+                  className="absolute w-0.5 h-1.5 bg-orange-400 rounded-full origin-center"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                    transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-12px)`,
+                  }}
+                />
+              ))}
+            </div>
+            
+            {/* Inner glow */}
+            <div className={cn(
+              "w-4 h-4 rounded-full transition-all duration-300",
+              isSystem
+                ? "bg-white/0"
+                : isDark 
+                  ? "bg-slate-100" 
+                  : "bg-gradient-to-br from-yellow-200 to-orange-300"
+            )} />
+          </div>
+
+          <style>{`
+            @keyframes twinkle {
+              0%, 100% { opacity: 0.3; transform: scale(1); }
+              50% { opacity: 1; transform: scale(1.5); }
+            }
+            .animate-twinkle {
+              animation: twinkle 2s ease-in-out infinite;
+            }
+          `}</style>
+        </button>
+      </DropdownMenuTrigger>
+      
+      <DropdownMenuContent align="end" className="min-w-[140px]">
+        <DropdownMenuItem 
+          onClick={() => handleThemeChange('light')}
+          className={cn(
+            "flex items-center gap-2 cursor-pointer",
+            theme === 'light' && "bg-primary/10 text-primary"
+          )}
+        >
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 flex items-center justify-center">
+            <div className="w-2.5 h-2.5 rounded-full bg-yellow-200" />
+          </div>
+          浅色模式
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => handleThemeChange('dark')}
+          className={cn(
+            "flex items-center gap-2 cursor-pointer",
+            theme === 'dark' && "bg-primary/10 text-primary"
+          )}
+        >
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full bg-slate-300" />
+          </div>
+          深色模式
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => handleThemeChange('system')}
+          className={cn(
+            "flex items-center gap-2 cursor-pointer",
+            theme === 'system' && "bg-primary/10 text-primary"
+          )}
+        >
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center">
+            <Monitor className="w-2.5 h-2.5 text-white" />
+          </div>
+          跟随系统
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

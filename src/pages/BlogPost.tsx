@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Eye, BookOpen, X } from "lucide-react";
-import { format, formatDistanceToNow } from 'date-fns';
+import { ArrowLeft, Calendar, Clock, Eye, X } from "lucide-react";
+import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -11,16 +11,19 @@ import ShareButton from "@/components/ShareButton";
 import BookmarkButton from "@/components/BookmarkButton";
 import TableOfContents from "@/components/TableOfContents";
 import RelatedPosts from "@/components/RelatedPosts";
+import ReadingModeButton from "@/components/ReadingModeButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
 import { useAuthor } from "@/hooks/useAuthors";
 import { useReadingProgress, getLastReadProgress } from "@/hooks/useReadingProgress";
+import { useReadingMode } from "@/hooks/useReadingMode";
 import { cn } from "@/lib/utils";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
 import coverTech from '@/assets/cover-tech.jpg';
+import { BookOpen } from "lucide-react";
 
 const categoryCovers: Record<string, string> = {
   '编程': coverProgramming,
@@ -37,7 +40,19 @@ const BlogPost = () => {
   const { getSavedProgress } = useReadingProgress(slug);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedScrollPosition, setSavedScrollPosition] = useState<number | null>(null);
-  const [isReadingMode, setIsReadingMode] = useState(false);
+  
+  // Use reading mode hook with font size control
+  const {
+    isReadingMode,
+    toggleReadingMode,
+    exitReadingMode,
+    fontSize,
+    increaseFontSize,
+    decreaseFontSize,
+    resetFontSize,
+    minFontSize,
+    maxFontSize,
+  } = useReadingMode();
 
   // Check for saved reading progress on mount
   useEffect(() => {
@@ -61,12 +76,12 @@ const BlogPost = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isReadingMode) {
-        setIsReadingMode(false);
+        exitReadingMode();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isReadingMode]);
+  }, [isReadingMode, exitReadingMode]);
 
   const handleResumeReading = () => {
     if (savedScrollPosition) {
@@ -168,15 +183,20 @@ const BlogPost = () => {
         </div>
       )}
 
-      {/* Reading Mode Exit Button */}
+      {/* Reading Mode Controls */}
       {isReadingMode && (
-        <button
-          onClick={() => setIsReadingMode(false)}
-          className="fixed top-4 right-4 z-50 p-3 rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-all duration-300 animate-fade-in"
-          title="退出阅读模式 (ESC)"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
+          <ReadingModeButton 
+            isActive={isReadingMode}
+            onToggle={toggleReadingMode}
+            fontSize={fontSize}
+            onIncreaseFontSize={increaseFontSize}
+            onDecreaseFontSize={decreaseFontSize}
+            onResetFontSize={resetFontSize}
+            minFontSize={minFontSize}
+            maxFontSize={maxFontSize}
+          />
+        </div>
       )}
       
       <main className={cn(
@@ -281,23 +301,29 @@ const BlogPost = () => {
                     <Eye className="w-4 h-4" />
                     {post.view_count} 次阅读
                   </span>
-                  {/* Reading mode toggle button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsReadingMode(!isReadingMode)}
-                    className="gap-2 ml-2"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    {isReadingMode ? "退出阅读" : "阅读模式"}
-                  </Button>
+                  {/* Reading mode toggle button - only show when not in reading mode */}
+                  {!isReadingMode && (
+                    <ReadingModeButton 
+                      isActive={isReadingMode}
+                      onToggle={toggleReadingMode}
+                      fontSize={fontSize}
+                      onIncreaseFontSize={increaseFontSize}
+                      onDecreaseFontSize={decreaseFontSize}
+                      onResetFontSize={resetFontSize}
+                      minFontSize={minFontSize}
+                      maxFontSize={maxFontSize}
+                    />
+                  )}
                 </div>
               </header>
               
-              <div className={cn(
-                "prose-blog max-w-none transition-all duration-500",
-                isReadingMode && "text-lg leading-loose [&_p]:mb-6 [&_h2]:mt-16 [&_h2]:mb-8"
-              )}>
+              <div 
+                className={cn(
+                  "prose-blog max-w-none transition-all duration-500",
+                  isReadingMode && "leading-loose [&_p]:mb-6 [&_h2]:mt-16 [&_h2]:mb-8"
+                )}
+                style={isReadingMode ? { fontSize: `${fontSize}px` } : undefined}
+              >
                 {parsedContent.map((item, index) => {
                   if (item.type === 'heading') {
                     return (
@@ -317,10 +343,7 @@ const BlogPost = () => {
                   }
                   if (item.type === 'list') {
                     return (
-                      <ul key={index} className={cn(
-                        "list-disc list-inside space-y-2 my-4 text-foreground/80",
-                        isReadingMode && "text-lg"
-                      )}>
+                      <ul key={index} className="list-disc list-inside space-y-2 my-4 text-foreground/80">
                         {item.items!.map((listItem, i) => (
                           <li key={i}>{listItem}</li>
                         ))}
@@ -330,7 +353,7 @@ const BlogPost = () => {
                   return (
                     <p key={index} className={cn(
                       "text-foreground/80 leading-relaxed mb-4",
-                      isReadingMode && "text-lg leading-loose mb-6"
+                      isReadingMode && "leading-loose mb-6"
                     )}>
                       {item.content}
                     </p>
