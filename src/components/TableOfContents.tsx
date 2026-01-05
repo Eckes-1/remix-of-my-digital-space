@@ -82,7 +82,7 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
       {/* Mobile floating button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="lg:hidden fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center"
+        className="lg:hidden fixed bottom-20 right-4 z-40 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 transition-transform"
       >
         <List className="w-5 h-5" />
       </button>
@@ -90,7 +90,7 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
       {/* Mobile overlay */}
       {isExpanded && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm animate-fade-in"
           onClick={() => setIsExpanded(false)}
         />
       )}
@@ -100,34 +100,37 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
         className={cn(
           "lg:sticky lg:top-24 lg:max-h-[calc(100vh-120px)] lg:overflow-auto",
           "fixed bottom-0 left-0 right-0 z-50 lg:z-auto",
-          "bg-card lg:bg-transparent rounded-t-2xl lg:rounded-none p-6 lg:p-0",
+          "bg-card/95 backdrop-blur-xl lg:bg-card rounded-t-3xl lg:rounded-2xl p-6 lg:p-5",
           "transform transition-transform duration-300 lg:transform-none",
+          "border-t lg:border border-border/50 shadow-2xl lg:shadow-lg",
           isExpanded ? "translate-y-0" : "translate-y-full lg:translate-y-0"
         )}
       >
-        <h3 className="font-serif text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-          <List className="w-4 h-4" />
-          文章目录
-        </h3>
+        <div className="flex items-center gap-3 mb-5">
+          <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+            <List className="w-4 h-4 text-primary-foreground" />
+          </span>
+          <h3 className="font-serif text-base font-semibold text-foreground">文章目录</h3>
+        </div>
         <ul className="space-y-1">
           {headings.map((heading, index) => (
             <li key={heading.id} className="relative">
               {/* Active indicator line */}
               <div 
                 className={cn(
-                  "absolute left-0 top-0 bottom-0 w-0.5 rounded-full transition-all duration-300",
+                  "absolute left-0 top-0 bottom-0 w-1 rounded-full transition-all duration-300",
                   activeId === heading.id 
-                    ? "bg-primary scale-y-100" 
-                    : "bg-transparent scale-y-0"
+                    ? "bg-gradient-to-b from-primary to-primary/50" 
+                    : "bg-transparent"
                 )}
               />
               <button
                 onClick={() => scrollToHeading(heading.id)}
                 className={cn(
-                  "text-sm text-left w-full py-2 pl-4 pr-3 rounded-r-lg transition-all duration-300",
+                  "text-sm text-left w-full py-2.5 pl-5 pr-3 rounded-xl transition-all duration-300",
                   "hover:bg-primary/10 hover:text-primary hover:translate-x-1",
                   activeId === heading.id
-                    ? "bg-gradient-to-r from-primary/15 to-transparent text-primary font-medium"
+                    ? "bg-gradient-to-r from-primary/15 to-transparent text-primary font-medium shadow-sm"
                     : "text-muted-foreground"
                 )}
               >
@@ -136,7 +139,7 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
                   activeId === heading.id && "animate-fade-in"
                 )}>
                   {activeId === heading.id && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   )}
                   {heading.title}
                 </span>
@@ -144,6 +147,24 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
             </li>
           ))}
         </ul>
+        
+        {/* Progress indicator */}
+        <div className="mt-5 pt-4 border-t border-border/50">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+            <span>阅读进度</span>
+            <span className="font-medium text-primary">
+              {headings.findIndex(h => h.id === activeId) + 1} / {headings.length}
+            </span>
+          </div>
+          <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
+              style={{ 
+                width: `${((headings.findIndex(h => h.id === activeId) + 1) / headings.length) * 100}%` 
+              }}
+            />
+          </div>
+        </div>
       </nav>
     </>
   );
