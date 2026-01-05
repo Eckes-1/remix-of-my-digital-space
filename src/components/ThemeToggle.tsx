@@ -86,18 +86,47 @@ const ThemeToggle = () => {
               "relative w-7 h-7 rounded-full transition-all duration-500 ease-out",
               "shadow-lg flex items-center justify-center",
               isSystem 
-                ? "translate-x-3.5 bg-gradient-to-br from-violet-400 to-indigo-500"
+                ? "translate-x-3.5 bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500"
                 : isDark 
                   ? "translate-x-7 bg-gradient-to-br from-slate-200 to-slate-300" 
                   : "translate-x-0 bg-gradient-to-br from-amber-300 to-orange-400"
             )}
           >
-            {/* System icon */}
+            {/* System icon - half sun half moon design */}
             <div className={cn(
-              "absolute inset-0 rounded-full flex items-center justify-center transition-all duration-500",
+              "absolute inset-0 rounded-full flex items-center justify-center transition-all duration-500 overflow-hidden",
               isSystem ? "opacity-100" : "opacity-0"
             )}>
-              <Monitor className="w-3.5 h-3.5 text-white" />
+              {/* Split design */}
+              <div className="relative w-full h-full">
+                {/* Sun half (left) */}
+                <div className="absolute inset-0 overflow-hidden" style={{ clipPath: 'inset(0 50% 0 0)' }}>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-amber-300" />
+                  </div>
+                  {[...Array(4)].map((_, i) => (
+                    <span
+                      key={i}
+                      className="absolute w-0.5 h-1 bg-amber-200 rounded-full"
+                      style={{
+                        left: '25%',
+                        top: '50%',
+                        transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-8px)`,
+                      }}
+                    />
+                  ))}
+                </div>
+                {/* Moon half (right) */}
+                <div className="absolute inset-0 overflow-hidden" style={{ clipPath: 'inset(0 0 0 50%)' }}>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-slate-200">
+                      <div className="absolute top-0.5 left-1 w-1 h-1 rounded-full bg-slate-400/40" />
+                    </div>
+                  </div>
+                </div>
+                {/* Center divider */}
+                <div className="absolute left-1/2 top-1 bottom-1 w-px bg-white/40" />
+              </div>
             </div>
 
             {/* Moon features */}
@@ -183,8 +212,18 @@ const ThemeToggle = () => {
             theme === 'system' && "bg-primary/10 text-primary"
           )}
         >
-          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center">
-            <Monitor className="w-2.5 h-2.5 text-white" />
+          {/* Half sun half moon icon */}
+          <div className="w-5 h-5 rounded-full bg-gradient-to-r from-amber-400 to-slate-600 flex items-center justify-center overflow-hidden relative">
+            <div className="absolute inset-0" style={{ clipPath: 'inset(0 50% 0 0)' }}>
+              <div className="w-full h-full bg-amber-400 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-yellow-200" />
+              </div>
+            </div>
+            <div className="absolute inset-0" style={{ clipPath: 'inset(0 0 0 50%)' }}>
+              <div className="w-full h-full bg-slate-600 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-300 ml-1" />
+              </div>
+            </div>
           </div>
           跟随系统
         </DropdownMenuItem>
