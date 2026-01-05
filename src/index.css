@@ -43,6 +43,30 @@
 .animate-fade-in {
   animation: fade-in 0.6s ease-out forwards;
 }
+
+/* Particle Fall Animation for Loading Screen */
+@keyframes particle-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-particle-fall {
+  animation: particle-fall linear infinite;
+  top: -50px;
+}
+
 @tailwind components;
 @tailwind utilities;
 
