@@ -29,25 +29,28 @@ const Header = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
+    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <nav className="flex items-center justify-between h-16">
+        <nav className="flex items-center justify-between h-18 py-3">
           {/* Logo */}
           <Link 
             to="/" 
             className="group flex items-center gap-3"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-              <span className="font-serif text-primary-foreground font-bold text-lg">{siteName.charAt(0)}</span>
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover:blur-xl transition-all opacity-0 group-hover:opacity-100" />
+              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-primary via-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-xl group-hover:shadow-primary/30 transition-all group-hover:scale-105">
+                <span className="font-serif text-primary-foreground font-bold text-xl">{siteName.charAt(0)}</span>
+              </div>
             </div>
-            <span className="hidden sm:block font-serif text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+            <span className="hidden sm:block font-serif text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
               {siteName}
             </span>
           </Link>
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center">
-            <ul className="flex items-center bg-secondary/50 rounded-full px-1.5 py-1.5">
+            <ul className="flex items-center bg-card/80 backdrop-blur-sm rounded-2xl px-2 py-2 border border-border/50 shadow-sm">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = location.pathname === link.path;
@@ -56,13 +59,13 @@ const Header = () => {
                     <Link
                       to={link.path}
                       className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300",
+                        "relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
                         isActive
-                          ? "bg-background text-primary shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       )}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className={cn("w-4 h-4", isActive && "animate-pulse")} />
                       {link.label}
                     </Link>
                   </li>
@@ -72,7 +75,7 @@ const Header = () => {
           </div>
 
           {/* Right side actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* RSS Button */}
             <TooltipProvider>
               <Tooltip>
@@ -81,13 +84,13 @@ const Header = () => {
                     href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rss-feed`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hidden md:flex w-9 h-9 items-center justify-center rounded-full text-muted-foreground hover:text-primary hover:bg-secondary/80 transition-colors"
+                    className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl border border-border/50 bg-card/50 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all"
                     aria-label="RSS 订阅"
                   >
                     <Rss className="w-4 h-4" />
                   </a>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="bg-card border-border">
                   <p>订阅 RSS</p>
                 </TooltipContent>
               </Tooltip>
@@ -99,7 +102,7 @@ const Header = () => {
             {isAdmin && (
               <Link
                 to="/admin"
-                className="hidden md:flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                className="hidden md:flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-primary rounded-xl border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
               >
                 <Settings className="w-4 h-4" />
                 管理
@@ -108,7 +111,7 @@ const Header = () => {
             {!user && (
               <Link
                 to="/auth"
-                className="hidden md:block px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-full transition-colors"
+                className="hidden md:flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-foreground bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105"
               >
                 登录
               </Link>
@@ -118,7 +121,7 @@ const Header = () => {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden w-10 h-10 flex items-center justify-center rounded-full bg-secondary text-foreground"
+              className="md:hidden w-11 h-11 flex items-center justify-center rounded-xl bg-card border border-border/50 text-foreground hover:bg-muted transition-colors"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -127,53 +130,55 @@ const Header = () => {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden pb-4 animate-fade-in">
-            <ul className="space-y-1">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                const isActive = location.pathname === link.path;
-                return (
-                  <li key={link.path}>
+          <div className="md:hidden pb-6 animate-fade-in">
+            <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-3 shadow-lg">
+              <ul className="space-y-1">
+                {navLinks.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = location.pathname === link.path;
+                  return (
+                    <li key={link.path}>
+                      <Link
+                        to={link.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                            : "text-muted-foreground hover:bg-muted/50"
+                        )}
+                      >
+                        <Icon className="w-5 h-5" />
+                        {link.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+                {isAdmin && (
+                  <li>
                     <Link
-                      to={link.path}
+                      to="/admin"
                       onClick={() => setMobileMenuOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
-                        isActive
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:bg-secondary"
-                      )}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50"
                     >
-                      <Icon className="w-5 h-5" />
-                      {link.label}
+                      <Settings className="w-5 h-5" />
+                      管理后台
                     </Link>
                   </li>
-                );
-              })}
-              {isAdmin && (
-                <li>
-                  <Link
-                    to="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary"
-                  >
-                    <Settings className="w-5 h-5" />
-                    管理后台
-                  </Link>
-                </li>
-              )}
+                )}
+              </ul>
               {!user && (
-                <li>
+                <div className="mt-3 pt-3 border-t border-border/50">
                   <Link
                     to="/auth"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 mx-4 mt-2 py-3 rounded-xl text-sm font-medium text-primary-foreground bg-primary"
+                    className="flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold text-primary-foreground bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/20"
                   >
                     登录 / 注册
                   </Link>
-                </li>
+                </div>
               )}
-            </ul>
+            </div>
           </div>
         )}
       </div>

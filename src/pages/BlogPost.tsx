@@ -280,13 +280,23 @@ const BlogPost = () => {
       )}>
         {/* Hero Image - hidden in reading mode */}
         {!isReadingMode && (
-          <div className="relative h-64 md:h-96 mb-8 overflow-hidden">
+          <div className="relative h-72 md:h-[28rem] mb-8 overflow-hidden">
             <img
               src={cover}
               alt={post.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover scale-105 animate-slow-zoom"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+            {/* Multiple gradient overlays for depth */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/30 via-transparent to-background/30" />
+            
+            {/* Floating category badge */}
+            <div className="absolute top-6 left-6 z-10">
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary-foreground bg-primary/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg shadow-primary/25">
+                <span className="w-2 h-2 rounded-full bg-primary-foreground animate-pulse" />
+                {post.category}
+              </span>
+            </div>
           </div>
         )}
         
@@ -294,7 +304,7 @@ const BlogPost = () => {
           "mx-auto px-4 sm:px-6 transition-all duration-500",
           isReadingMode 
             ? "max-w-3xl" 
-            : "max-w-6xl -mt-32 relative"
+            : "max-w-6xl -mt-40 relative"
         )}>
           <div className={cn(
             "transition-all duration-500",
@@ -304,17 +314,19 @@ const BlogPost = () => {
           )}>
             {/* Main content */}
             <article className={cn(
-              "rounded-xl transition-all duration-500",
+              "rounded-2xl transition-all duration-500",
               isReadingMode 
                 ? "bg-transparent p-0" 
-                : "bg-background p-6 md:p-10 shadow-lg"
+                : "bg-background/95 backdrop-blur-sm p-8 md:p-12 shadow-2xl shadow-black/5 border border-border/50"
             )}>
               {!isReadingMode && (
                 <Link
                   to="/blog"
-                  className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8"
+                  className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-all duration-300 mb-8 group"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <span className="w-8 h-8 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
+                  </span>
                   返回文章列表
                 </Link>
               )}
@@ -323,18 +335,20 @@ const BlogPost = () => {
                 "transition-all duration-500",
                 isReadingMode ? "mb-16 text-center" : "mb-12"
               )}>
-                <span className={cn(
-                  "inline-block text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mb-4",
-                  isReadingMode && "mb-6"
-                )}>
-                  {post.category}
-                </span>
+                {!isReadingMode && (
+                  <span className={cn(
+                    "inline-flex items-center gap-2 text-xs font-medium text-primary bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-1.5 rounded-full mb-6 border border-primary/20"
+                  )}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    {post.category}
+                  </span>
+                )}
                 
                 <h1 className={cn(
                   "font-serif font-bold text-foreground leading-tight transition-all duration-500",
                   isReadingMode 
                     ? "text-4xl md:text-5xl lg:text-6xl mb-8" 
-                    : "text-3xl md:text-4xl lg:text-5xl mb-6"
+                    : "text-3xl md:text-4xl lg:text-5xl mb-8"
                 )}>
                   {post.title}
                 </h1>
@@ -342,38 +356,38 @@ const BlogPost = () => {
                 {/* Author info */}
                 {author && (
                   <div className={cn(
-                    "flex items-center gap-3 mb-4",
-                    isReadingMode && "justify-center"
+                    "flex items-center gap-4 mb-6 p-4 rounded-xl bg-muted/30",
+                    isReadingMode && "justify-center bg-transparent"
                   )}>
-                    <Avatar className="w-10 h-10">
+                    <Avatar className="w-12 h-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
                       <AvatarImage src={author.avatar_url || undefined} alt={author.name} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground font-semibold">
                         {author.name.slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                     <div className={isReadingMode ? "text-center" : ""}>
-                      <div className="font-medium text-foreground">{author.name}</div>
+                      <div className="font-semibold text-foreground">{author.name}</div>
                       {author.bio && (
-                        <div className="text-xs text-muted-foreground line-clamp-1">{author.bio}</div>
+                        <div className="text-sm text-muted-foreground line-clamp-1">{author.bio}</div>
                       )}
                     </div>
                   </div>
                 )}
                 
                 <div className={cn(
-                  "flex flex-wrap items-center gap-4 text-sm text-muted-foreground",
+                  "flex flex-wrap items-center gap-3 text-sm text-muted-foreground",
                   isReadingMode && "justify-center"
                 )}>
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4" />
+                  <span className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full">
+                    <Calendar className="w-4 h-4 text-primary/70" />
                     {formattedDate}
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4" />
+                  <span className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full">
+                    <Clock className="w-4 h-4 text-primary/70" />
                     {post.read_time}阅读
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <Eye className="w-4 h-4" />
+                  <span className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full">
+                    <Eye className="w-4 h-4 text-primary/70" />
                     {post.view_count} 次阅读
                   </span>
                   {/* Reading mode toggle button - only show when not in reading mode */}
@@ -437,19 +451,22 @@ const BlogPost = () => {
               </div>
               
               {/* Like, Share & Bookmark Buttons */}
-              <div className="flex items-center justify-center gap-3 mt-10 mb-8">
-                <LikeButton postId={post.id} />
-                <ShareButton title={post.title} />
-                <BookmarkButton 
-                  post={{
-                    slug: post.slug,
-                    title: post.title,
-                    excerpt: post.excerpt,
-                    category: post.category,
-                    coverImage: post.cover_image || undefined,
-                  }}
-                  showLabel
-                />
+              <div className="flex flex-col items-center justify-center gap-4 mt-12 mb-10 py-8 border-t border-b border-border/50">
+                <p className="text-sm text-muted-foreground mb-2">觉得文章不错？支持一下 👇</p>
+                <div className="flex items-center gap-4">
+                  <LikeButton postId={post.id} />
+                  <ShareButton title={post.title} />
+                  <BookmarkButton 
+                    post={{
+                      slug: post.slug,
+                      title: post.title,
+                      excerpt: post.excerpt,
+                      category: post.category,
+                      coverImage: post.cover_image || undefined,
+                    }}
+                    showLabel
+                  />
+                </div>
               </div>
 
               {/* Related Posts - hidden in reading mode */}
