@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import ReadingProgress from "./components/ReadingProgress";
 import ThemeStyleInitializer from "./components/ThemeStyleInitializer";
 import MusicPlayer from "./components/MusicPlayer";
+import LoadingScreen from "./components/LoadingScreen";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
+        <LoadingScreen />
         <ThemeStyleInitializer />
         <Toaster />
         <Sonner />
