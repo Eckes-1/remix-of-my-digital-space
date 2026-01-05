@@ -48,8 +48,8 @@ const Header = () => {
             </span>
           </Link>
           
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center">
+          {/* Desktop Navigation - Full labels */}
+          <div className="hidden lg:flex items-center">
             <ul className="flex items-center bg-card/80 backdrop-blur-sm rounded-2xl px-2 py-2 border border-border/50 shadow-sm">
               {navLinks.map((link) => {
                 const Icon = link.icon;
@@ -74,6 +74,40 @@ const Header = () => {
             </ul>
           </div>
 
+          {/* Tablet Navigation - Icon only with tooltip */}
+          <div className="hidden md:flex lg:hidden items-center">
+            <ul className="flex items-center bg-card/80 backdrop-blur-sm rounded-2xl px-2 py-2 border border-border/50 shadow-sm gap-1">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = location.pathname === link.path;
+                return (
+                  <li key={link.path}>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            to={link.path}
+                            className={cn(
+                              "relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300",
+                              isActive
+                                ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )}
+                          >
+                            <Icon className={cn("w-5 h-5", isActive && "animate-pulse")} />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-card border-border">
+                          <p>{link.label}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
           {/* Right side actions */}
           <div className="flex items-center gap-3">
             {/* RSS Button */}
@@ -84,7 +118,7 @@ const Header = () => {
                     href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rss-feed`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl border border-border/50 bg-card/50 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all"
+                    className="hidden lg:flex w-10 h-10 items-center justify-center rounded-xl border border-border/50 bg-card/50 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all"
                     aria-label="RSS 订阅"
                   >
                     <Rss className="w-4 h-4" />
@@ -100,21 +134,40 @@ const Header = () => {
             <BookmarksList />
 
             {isAdmin && (
-              <Link
-                to="/admin"
-                className="hidden md:flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-primary rounded-xl border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
-              >
-                <Settings className="w-4 h-4" />
-                管理
-              </Link>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/admin"
+                      className="hidden md:flex items-center justify-center w-10 h-10 lg:w-auto lg:px-4 lg:py-2.5 text-sm font-medium text-muted-foreground hover:text-primary rounded-xl border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                    >
+                      <Settings className="w-4 h-4 lg:mr-2" />
+                      <span className="hidden lg:inline">管理</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent className="lg:hidden bg-card border-border">
+                    <p>管理后台</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {!user && (
-              <Link
-                to="/auth"
-                className="hidden md:flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-foreground bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105"
-              >
-                登录
-              </Link>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/auth"
+                      className="hidden md:flex items-center justify-center w-10 h-10 lg:w-auto lg:px-5 lg:py-2.5 text-sm font-semibold text-primary-foreground bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105"
+                    >
+                      <User className="w-4 h-4 lg:hidden" />
+                      <span className="hidden lg:inline">登录</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent className="lg:hidden bg-card border-border">
+                    <p>登录</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             <ThemeToggle />
             
