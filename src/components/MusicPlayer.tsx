@@ -183,73 +183,66 @@ const MusicPlayer = () => {
       
       <div className="fixed bottom-24 right-6 z-40">
         {!isExpanded ? (
-          /* Collapsed - Rotating vinyl style button */
+          /* Collapsed - Modern glass style button matching theme */
           <button
             onClick={() => setIsExpanded(true)}
             className={cn(
-              "group relative w-16 h-16 rounded-full",
-              "bg-gradient-to-br from-zinc-900 via-zinc-800 to-black",
-              "shadow-2xl shadow-black/60 border-2 border-white/10",
+              "group relative w-14 h-14 rounded-2xl",
+              "bg-card/95 backdrop-blur-xl",
+              "shadow-lg shadow-primary/10 border border-border",
               "flex items-center justify-center",
-              "transition-all duration-500 hover:scale-110 hover:shadow-primary/20"
+              "transition-all duration-500 hover:scale-105 hover:shadow-primary/20 hover:border-primary/30"
             )}
           >
-            {/* Outer ring - rotates when playing */}
+            {/* Rotating disc inside */}
             <div className={cn(
-              "absolute inset-0 rounded-full",
+              "relative w-9 h-9 rounded-full",
+              "bg-gradient-to-br from-muted to-secondary",
+              "border border-border shadow-inner",
+              "flex items-center justify-center",
               isPlaying && "animate-spin-slow"
             )}>
-              {/* Vinyl grooves */}
-              <div className="absolute inset-1 rounded-full border border-white/5" />
-              <div className="absolute inset-2 rounded-full border border-white/5" />
-              <div className="absolute inset-3 rounded-full border border-white/5" />
-              <div className="absolute inset-4 rounded-full border border-white/10" />
+              {/* Disc grooves */}
+              <div className="absolute inset-1.5 rounded-full border border-foreground/5" />
+              <div className="absolute inset-2.5 rounded-full border border-foreground/5" />
               
-              {/* Highlight reflection */}
-              <div className="absolute top-2 left-2 w-4 h-1 bg-white/10 rounded-full rotate-45 blur-sm" />
+              {/* Center label */}
+              <div className={cn(
+                "w-4 h-4 rounded-full flex items-center justify-center",
+                "bg-gradient-to-br from-primary to-accent",
+                "shadow-sm"
+              )}>
+                <div className="w-1 h-1 rounded-full bg-background" />
+              </div>
             </div>
             
-            {/* Center label - always visible and clickable */}
-            <div className={cn(
-              "relative w-7 h-7 rounded-full flex items-center justify-center z-10",
-              "bg-gradient-to-br from-rose-500 via-pink-500 to-purple-600",
-              "shadow-lg shadow-pink-500/30"
-            )}>
-              {/* Inner hole */}
-              <div className="absolute w-2 h-2 rounded-full bg-zinc-900" />
-              
-              {isPlaying ? (
-                <div className="flex gap-0.5 items-end h-3">
-                  <span className="w-0.5 bg-white rounded-full animate-eq-1" />
-                  <span className="w-0.5 bg-white rounded-full animate-eq-2" />
-                  <span className="w-0.5 bg-white rounded-full animate-eq-3" />
-                </div>
-              ) : (
-                <Music2 className="w-3 h-3 text-white" />
-              )}
-            </div>
-            
-            {/* Glow effect when playing */}
+            {/* Playing indicator */}
             {isPlaying && (
-              <>
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-blue-500/20 blur-xl animate-pulse" />
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-rose-500/10 to-purple-500/10 blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }} />
-              </>
+              <div className="absolute -top-1 -right-1 flex gap-0.5 items-end h-3 bg-card/90 px-1.5 py-1 rounded-full border border-border">
+                <span className="w-0.5 bg-primary rounded-full animate-eq-1" />
+                <span className="w-0.5 bg-primary rounded-full animate-eq-2" />
+                <span className="w-0.5 bg-primary rounded-full animate-eq-3" />
+              </div>
+            )}
+            
+            {/* Subtle glow */}
+            {isPlaying && (
+              <div className="absolute inset-0 rounded-2xl bg-primary/5 animate-pulse" />
             )}
           </button>
         ) : (
-          /* Expanded - Glassmorphism player */
+          /* Expanded - Glass player matching theme */
           <div className={cn(
             "w-80 rounded-2xl overflow-hidden",
-            "bg-black/85 backdrop-blur-2xl",
-            "border border-white/10",
-            "shadow-2xl shadow-black/60"
+            "bg-card/95 backdrop-blur-2xl",
+            "border border-border",
+            "shadow-xl shadow-primary/5"
           )}>
             {/* Header with cover art simulation */}
-            <div className="relative h-20 bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-blue-500/20 overflow-hidden">
+            <div className="relative h-20 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/10 overflow-hidden">
               {/* Animated gradient background */}
               <div className={cn(
-                "absolute inset-0 bg-gradient-to-r from-rose-500/30 via-purple-500/30 to-blue-500/30",
+                "absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/15 to-primary/10",
                 "animate-gradient-x"
               )} />
               
@@ -258,7 +251,7 @@ const MusicPlayer = () => {
                 {[...Array(5)].map((_, i) => (
                   <div
                     key={i}
-                    className="absolute w-1 h-1 bg-white/30 rounded-full animate-float"
+                    className="absolute w-1 h-1 bg-primary/40 rounded-full animate-float"
                     style={{
                       left: `${20 + i * 15}%`,
                       top: `${30 + (i % 3) * 20}%`,
@@ -275,8 +268,8 @@ const MusicPlayer = () => {
                   className={cn(
                     "p-1.5 rounded-lg transition-all text-xs font-medium",
                     showLyrics 
-                      ? "bg-white/20 text-white" 
-                      : "bg-black/30 text-white/60 hover:text-white"
+                      ? "bg-primary/20 text-primary" 
+                      : "bg-secondary text-muted-foreground hover:text-foreground"
                   )}
                 >
                   词
@@ -286,15 +279,15 @@ const MusicPlayer = () => {
                   className={cn(
                     "p-1.5 rounded-lg transition-all",
                     showPlaylist 
-                      ? "bg-white/20 text-white" 
-                      : "bg-black/30 text-white/60 hover:text-white"
+                      ? "bg-primary/20 text-primary" 
+                      : "bg-secondary text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <ListMusic className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setIsExpanded(false)}
-                  className="p-1.5 rounded-lg bg-black/30 text-white/60 hover:text-white transition-all"
+                  className="p-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-all"
                 >
                   <ChevronDown className="w-3.5 h-3.5" />
                 </button>
@@ -304,19 +297,19 @@ const MusicPlayer = () => {
               <div className="absolute bottom-0 left-4 translate-y-1/2">
                 <div className={cn(
                   "w-16 h-16 rounded-full",
-                  "bg-gradient-to-br from-zinc-800 to-black",
-                  "border-2 border-zinc-700 shadow-xl",
+                  "bg-gradient-to-br from-secondary to-muted",
+                  "border-2 border-border shadow-lg",
                   "flex items-center justify-center",
                   isPlaying && "animate-spin-slow"
                 )}>
                   {/* Vinyl grooves */}
-                  <div className="absolute inset-2 rounded-full border border-zinc-600/30" />
-                  <div className="absolute inset-3 rounded-full border border-zinc-600/20" />
+                  <div className="absolute inset-2 rounded-full border border-foreground/5" />
+                  <div className="absolute inset-3 rounded-full border border-foreground/5" />
                   
                   {/* Center label */}
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-rose-400 to-purple-500 shadow-inner">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-accent shadow-inner">
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-background" />
                     </div>
                   </div>
                 </div>
@@ -327,10 +320,10 @@ const MusicPlayer = () => {
             <div className="pt-12 pb-2 px-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-medium text-sm truncate">{currentTrack?.title}</h3>
-                  <p className="text-white/50 text-xs truncate">{currentTrack?.artist}</p>
+                  <h3 className="text-foreground font-medium text-sm truncate">{currentTrack?.title}</h3>
+                  <p className="text-muted-foreground text-xs truncate">{currentTrack?.artist}</p>
                 </div>
-                <span className="text-white/30 text-xs ml-2">
+                <span className="text-muted-foreground/50 text-xs ml-2">
                   {currentTrackIndex + 1}/{tracks.length}
                 </span>
               </div>
@@ -338,7 +331,7 @@ const MusicPlayer = () => {
 
             {/* Lyrics section */}
             {showLyrics && currentTrack?.lyrics && (
-              <div className="border-t border-white/5 bg-zinc-900/50">
+              <div className="border-t border-border bg-secondary/50">
                 <LyricsDisplay 
                   lyrics={currentTrack.lyrics} 
                   currentTime={currentTime}
@@ -349,7 +342,7 @@ const MusicPlayer = () => {
 
             {/* Playlist with drag and drop */}
             {showPlaylist && (
-              <div className="border-t border-white/5 max-h-40 overflow-y-auto">
+              <div className="border-t border-border max-h-40 overflow-y-auto">
                 {tracks.map((track, index) => (
                   <div
                     key={track.id}
@@ -361,36 +354,36 @@ const MusicPlayer = () => {
                     className={cn(
                       "w-full px-4 py-2 text-left transition-all flex items-center gap-2 cursor-pointer",
                       currentTrackIndex === index 
-                        ? "bg-white/10" 
-                        : "hover:bg-white/5",
+                        ? "bg-primary/10" 
+                        : "hover:bg-secondary",
                       dragOverIndex === index && "bg-primary/20 border-t-2 border-primary"
                     )}
                   >
-                    <div className="cursor-grab active:cursor-grabbing text-white/30 hover:text-white/60">
+                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground">
                       <GripVertical className="w-3.5 h-3.5" />
                     </div>
                     <span className={cn(
                       "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0",
                       currentTrackIndex === index 
-                        ? "bg-gradient-to-r from-rose-500 to-purple-500 text-white" 
-                        : "bg-white/10 text-white/50"
+                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground" 
+                        : "bg-secondary text-muted-foreground"
                     )}>
                       {index + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className={cn(
                         "text-xs truncate",
-                        currentTrackIndex === index ? "text-white font-medium" : "text-white/70"
+                        currentTrackIndex === index ? "text-foreground font-medium" : "text-foreground/70"
                       )}>
                         {track.title}
                       </div>
-                      <div className="text-[10px] text-white/40 truncate">{track.artist}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{track.artist}</div>
                     </div>
                     {currentTrackIndex === index && isPlaying && (
                       <div className="flex gap-0.5 items-end h-3">
-                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-1" />
-                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-2" />
-                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-3" />
+                        <span className="w-0.5 bg-primary rounded-full animate-eq-1" />
+                        <span className="w-0.5 bg-primary rounded-full animate-eq-2" />
+                        <span className="w-0.5 bg-primary rounded-full animate-eq-3" />
                       </div>
                     )}
                   </div>
@@ -401,7 +394,7 @@ const MusicPlayer = () => {
             {/* Progress bar */}
             <div className="px-4 pt-2">
               <div 
-                className="relative h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group"
+                className="relative h-1.5 bg-secondary rounded-full overflow-hidden cursor-pointer group"
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = e.clientX - rect.left;
@@ -412,15 +405,15 @@ const MusicPlayer = () => {
                 }}
               >
                 <div 
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-rose-500 to-purple-500 rounded-full transition-all"
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-accent rounded-full transition-all"
                   style={{ width: `${progress}%` }}
                 />
                 <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-primary-foreground rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{ left: `calc(${progress}% - 6px)` }}
                 />
               </div>
-              <div className="flex justify-between text-[10px] text-white/40 mt-1">
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
@@ -450,7 +443,7 @@ const MusicPlayer = () => {
                     setVolume(Number(e.target.value));
                     setIsMuted(false);
                   }}
-                  className="w-14 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                  className="w-14 h-1 bg-secondary rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
                 />
               </div>
               
@@ -458,7 +451,7 @@ const MusicPlayer = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={prevTrack}
-                  className="p-2 text-white/50 hover:text-white transition-colors"
+                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <SkipBack className="w-4 h-4" />
                 </button>
@@ -466,20 +459,20 @@ const MusicPlayer = () => {
                   onClick={togglePlay}
                   className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center",
-                    "bg-gradient-to-r from-rose-500 to-purple-500",
+                    "bg-gradient-to-r from-primary to-accent",
                     "hover:scale-105 active:scale-95 transition-transform",
-                    "shadow-lg shadow-rose-500/25"
+                    "shadow-lg shadow-primary/25"
                   )}
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 text-white" />
+                    <Pause className="w-5 h-5 text-primary-foreground" />
                   ) : (
-                    <Play className="w-5 h-5 text-white ml-0.5" />
+                    <Play className="w-5 h-5 text-primary-foreground ml-0.5" />
                   )}
                 </button>
                 <button
                   onClick={nextTrack}
-                  className="p-2 text-white/50 hover:text-white transition-colors"
+                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <SkipForward className="w-4 h-4" />
                 </button>
