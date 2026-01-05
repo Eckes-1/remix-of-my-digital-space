@@ -294,7 +294,7 @@
 }
 
 .animate-spin-slow {
-  animation: spin-slow 8s linear infinite;
+  animation: spin-slow 4s linear infinite;
 }
 
 @keyframes gradient {
@@ -323,4 +323,19 @@
 
 .animate-float {
   animation: float 2s ease-in-out infinite;
+}
+
+/* Reading mode font size variable */
+:root {
+  --reading-font-size: 18px;
+}
+
+/* Reading mode styles */
+body.reading-mode {
+  overflow-x: hidden;
+}
+
+body.reading-mode .prose-blog {
+  font-size: var(--reading-font-size);
+  line-height: 1.9;
 }
