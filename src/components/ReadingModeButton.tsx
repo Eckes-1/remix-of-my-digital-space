@@ -35,48 +35,47 @@ const ReadingModeButton = ({
         variant="ghost"
         size="sm"
         onClick={onToggle}
-        className="gap-1.5 sm:gap-2 transition-all duration-300 text-xs sm:text-sm px-2 sm:px-3"
+        className="gap-2 transition-all duration-300"
       >
-        <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        <span className="hidden sm:inline">阅读模式</span>
-        <span className="sm:hidden">阅读</span>
+        <BookOpen className="w-4 h-4" />
+        阅读模式
       </Button>
     );
   }
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+    <div className="flex items-center gap-2">
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 sm:gap-2 bg-primary/10 border-primary/20 text-xs sm:text-sm px-2 sm:px-3"
+            className="gap-2 bg-primary/10 border-primary/20"
           >
-            <span className="font-mono">{fontSize}px</span>
-            <span className="hidden sm:inline">字体大小</span>
+            <span className="text-xs font-mono">{fontSize}px</span>
+            字体大小
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-56 sm:w-64 p-3 sm:p-4" align="end">
-          <div className="space-y-3 sm:space-y-4">
+        <PopoverContent className="w-64 p-4" align="center">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-sm font-medium">字体大小</span>
-              <span className="text-xs sm:text-sm text-muted-foreground font-mono">{fontSize}px</span>
+              <span className="text-sm font-medium">字体大小</span>
+              <span className="text-sm text-muted-foreground font-mono">{fontSize}px</span>
             </div>
             
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
                 size="icon"
-                className="h-7 w-7 sm:h-8 sm:w-8"
+                className="h-8 w-8"
                 onClick={onDecreaseFontSize}
                 disabled={fontSize <= minFontSize}
               >
                 <Minus className="w-3 h-3" />
               </Button>
               
-              <div className="flex-1 flex items-center gap-1.5 sm:gap-2">
-                <span className="text-[10px] sm:text-xs text-muted-foreground">A</span>
+              <div className="flex-1 flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">A</span>
                 <Slider
                   value={[fontSize]}
                   min={minFontSize}
@@ -92,13 +91,13 @@ const ReadingModeButton = ({
                     }
                   }}
                 />
-                <span className="text-sm sm:text-base text-muted-foreground">A</span>
+                <span className="text-base text-muted-foreground">A</span>
               </div>
               
               <Button
                 variant="outline"
                 size="icon"
-                className="h-7 w-7 sm:h-8 sm:w-8"
+                className="h-8 w-8"
                 onClick={onIncreaseFontSize}
                 disabled={fontSize >= maxFontSize}
               >
@@ -109,11 +108,11 @@ const ReadingModeButton = ({
             <Button
               variant="ghost"
               size="sm"
-              className="w-full text-xs sm:text-sm"
+              className="w-full"
               onClick={onResetFontSize}
             >
-              <RotateCcw className="w-3 h-3 mr-1.5 sm:mr-2" />
-              重置默认
+              <RotateCcw className="w-3 h-3 mr-2" />
+              重置为默认 (18px)
             </Button>
           </div>
         </PopoverContent>
@@ -124,13 +123,12 @@ const ReadingModeButton = ({
         size="sm"
         onClick={onToggle}
         className={cn(
-          "gap-1.5 sm:gap-2 transition-all duration-300 text-xs sm:text-sm px-2 sm:px-3",
+          "gap-2 transition-all duration-300",
           "bg-primary text-primary-foreground hover:bg-primary/90"
         )}
       >
-        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        <span className="hidden sm:inline">退出阅读</span>
-        <span className="sm:hidden">退出</span>
+        <X className="w-4 h-4" />
+        退出阅读
       </Button>
     </div>
   );

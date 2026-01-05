@@ -79,12 +79,12 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
 
   return (
     <>
-      {/* Mobile floating button - improved positioning */}
+      {/* Mobile floating button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="lg:hidden fixed bottom-36 sm:bottom-20 right-3 sm:right-4 z-40 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center"
+        className="lg:hidden fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center"
       >
-        <List className="w-4 h-4 sm:w-5 sm:h-5" />
+        <List className="w-5 h-5" />
       </button>
 
       {/* Mobile overlay */}
@@ -95,22 +95,21 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
         />
       )}
 
-      {/* TOC Panel - mobile optimized */}
+      {/* TOC Panel */}
       <nav
         className={cn(
           "lg:sticky lg:top-24 lg:max-h-[calc(100vh-120px)] lg:overflow-auto",
           "fixed bottom-0 left-0 right-0 z-50 lg:z-auto",
-          "bg-card lg:bg-transparent rounded-t-2xl lg:rounded-none p-4 sm:p-6 lg:p-0",
+          "bg-card lg:bg-transparent rounded-t-2xl lg:rounded-none p-6 lg:p-0",
           "transform transition-transform duration-300 lg:transform-none",
-          "max-h-[50vh] overflow-y-auto",
           isExpanded ? "translate-y-0" : "translate-y-full lg:translate-y-0"
         )}
       >
-        <h3 className="font-serif text-xs sm:text-sm font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
-          <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <h3 className="font-serif text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <List className="w-4 h-4" />
           文章目录
         </h3>
-        <ul className="space-y-0.5 sm:space-y-1">
+        <ul className="space-y-1">
           {headings.map((heading, index) => (
             <li key={heading.id} className="relative">
               {/* Active indicator line */}
@@ -125,7 +124,7 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
               <button
                 onClick={() => scrollToHeading(heading.id)}
                 className={cn(
-                  "text-xs sm:text-sm text-left w-full py-1.5 sm:py-2 pl-3 sm:pl-4 pr-2 sm:pr-3 rounded-r-lg transition-all duration-300",
+                  "text-sm text-left w-full py-2 pl-4 pr-3 rounded-r-lg transition-all duration-300",
                   "hover:bg-primary/10 hover:text-primary hover:translate-x-1",
                   activeId === heading.id
                     ? "bg-gradient-to-r from-primary/15 to-transparent text-primary font-medium"
@@ -133,13 +132,13 @@ const TableOfContents = ({ content }: TableOfContentsProps) => {
                 )}
               >
                 <span className={cn(
-                  "inline-flex items-center gap-1.5 sm:gap-2",
+                  "inline-flex items-center gap-2",
                   activeId === heading.id && "animate-fade-in"
                 )}>
                   {activeId === heading.id && (
-                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                   )}
-                  <span className="line-clamp-2">{heading.title}</span>
+                  {heading.title}
                 </span>
               </button>
             </li>

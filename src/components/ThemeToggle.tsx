@@ -41,7 +41,7 @@ const ThemeToggle = () => {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "relative w-14 sm:w-16 h-8 sm:h-9 rounded-full transition-all duration-500 p-1 overflow-hidden",
+            "relative w-16 h-9 rounded-full transition-all duration-500 p-1 overflow-hidden",
             "shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/50",
             isDark 
               ? "bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900" 
@@ -83,12 +83,12 @@ const ThemeToggle = () => {
           {/* Toggle circle */}
           <div
             className={cn(
-              "relative w-6 h-6 sm:w-7 sm:h-7 rounded-full transition-all duration-500 ease-out",
+              "relative w-7 h-7 rounded-full transition-all duration-500 ease-out",
               "shadow-lg flex items-center justify-center",
               isSystem 
-                ? "translate-x-3 sm:translate-x-3.5 bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500"
+                ? "translate-x-3.5 bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500"
                 : isDark 
-                  ? "translate-x-6 sm:translate-x-7 bg-gradient-to-br from-slate-200 to-slate-300" 
+                  ? "translate-x-7 bg-gradient-to-br from-slate-200 to-slate-300" 
                   : "translate-x-0 bg-gradient-to-br from-amber-300 to-orange-400"
             )}
           >

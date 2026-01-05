@@ -181,13 +181,13 @@ const MusicPlayer = () => {
     <>
       <audio ref={audioRef} src={currentTrack?.url} preload="metadata" />
       
-      <div className="fixed bottom-20 sm:bottom-24 right-3 sm:right-6 z-40">
+      <div className="fixed bottom-24 right-6 z-40">
         {!isExpanded ? (
           /* Collapsed - Modern glass style button matching theme */
           <button
             onClick={() => setIsExpanded(true)}
             className={cn(
-              "group relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl",
+              "group relative w-14 h-14 rounded-2xl",
               "bg-card/95 backdrop-blur-xl",
               "shadow-lg shadow-primary/10 border border-border",
               "flex items-center justify-center",
@@ -196,7 +196,7 @@ const MusicPlayer = () => {
           >
             {/* Rotating disc inside */}
             <div className={cn(
-              "relative w-8 h-8 sm:w-9 sm:h-9 rounded-full",
+              "relative w-9 h-9 rounded-full",
               "bg-gradient-to-br from-muted to-secondary",
               "border border-border shadow-inner",
               "flex items-center justify-center",
@@ -208,7 +208,7 @@ const MusicPlayer = () => {
               
               {/* Center label */}
               <div className={cn(
-                "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center",
+                "w-4 h-4 rounded-full flex items-center justify-center",
                 "bg-gradient-to-br from-primary to-accent",
                 "shadow-sm"
               )}>
@@ -233,7 +233,7 @@ const MusicPlayer = () => {
         ) : (
           /* Expanded - Glass player matching theme */
           <div className={cn(
-            "w-[calc(100vw-1.5rem)] sm:w-80 max-w-80 rounded-2xl overflow-hidden",
+            "w-80 rounded-2xl overflow-hidden",
             "bg-card/95 backdrop-blur-2xl",
             "border border-border",
             "shadow-xl shadow-primary/5"

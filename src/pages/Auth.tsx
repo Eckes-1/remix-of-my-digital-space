@@ -79,21 +79,21 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-3 sm:px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground mb-2">
+        <div className="text-center mb-8">
+          <h1 className="font-serif text-3xl font-bold text-foreground mb-2">
             {isLogin ? "欢迎回来" : "创建账户"}
           </h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
+          <p className="text-muted-foreground">
             {isLogin ? "登录以管理您的博客" : "注册以开始使用"}
           </p>
         </div>
         
-        <form onSubmit={handleSubmit} className="blog-card space-y-3 sm:space-y-4 p-4 sm:p-6">
+        <form onSubmit={handleSubmit} className="blog-card space-y-4">
           {!isLogin && (
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="displayName" className="text-sm">显示名称</Label>
+            <div className="space-y-2">
+              <Label htmlFor="displayName">显示名称</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -102,14 +102,14 @@ const Auth = () => {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="您的名字"
-                  className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
+                  className="pl-10"
                 />
               </div>
             </div>
           )}
           
-          <div className="space-y-1.5 sm:space-y-2">
-            <Label htmlFor="email" className="text-sm">邮箱</Label>
+          <div className="space-y-2">
+            <Label htmlFor="email">邮箱</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -118,13 +118,13 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
+                className="pl-10"
               />
             </div>
           </div>
           
-          <div className="space-y-1.5 sm:space-y-2">
-            <Label htmlFor="password" className="text-sm">密码</Label>
+          <div className="space-y-2">
+            <Label htmlFor="password">密码</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -133,20 +133,20 @@ const Auth = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="pl-10 h-10 sm:h-11 text-sm sm:text-base"
+                className="pl-10"
               />
             </div>
           </div>
           
-          <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "处理中..." : isLogin ? "登录" : "注册"}
           </Button>
           
-          <div className="text-center pt-2">
+          <div className="text-center">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-xs sm:text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               {isLogin ? "没有账户？立即注册" : "已有账户？立即登录"}
             </button>

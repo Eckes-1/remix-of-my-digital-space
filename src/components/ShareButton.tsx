@@ -97,38 +97,37 @@ const ShareButton = ({ title, url, className }: ShareButtonProps) => {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full transition-all duration-300",
+            "inline-flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300",
             "border border-border hover:border-primary/50",
-            "bg-card text-muted-foreground hover:text-primary",
-            "text-sm sm:text-base"
+            "bg-card text-muted-foreground hover:text-primary"
           )}
         >
           <Share2 className="w-4 h-4" />
-          <span className="font-medium hidden sm:inline">分享</span>
+          <span className="font-medium">分享</span>
         </button>
 
-        {/* Dropdown - improved mobile positioning */}
+        {/* Dropdown */}
         {isOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-            <div className="absolute bottom-full mb-2 right-0 sm:left-1/2 sm:-translate-x-1/2 z-50 bg-card border border-border rounded-xl shadow-lg p-2 min-w-[160px] animate-fade-in">
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-xl shadow-lg p-2 min-w-[160px] animate-fade-in">
               <button
                 onClick={copyLink}
-                className="w-full flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
               >
                 {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
                 复制链接
               </button>
               <button
                 onClick={() => openQRDialog('wechat')}
-                className="w-full flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
               >
                 <MessageCircle className="w-4 h-4" />
                 微信二维码
               </button>
               <button
                 onClick={() => openQRDialog('weibo')}
-                className="w-full flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M9.82 13.87c-.21.55-.83.82-1.38.6-.55-.21-.82-.83-.6-1.38.21-.55.83-.82 1.38-.6.55.21.82.83.6 1.38zm1.17-1.55c-.08.2-.31.3-.51.22-.2-.08-.3-.31-.22-.51.08-.2.31-.3.51-.22.2.08.3.31.22.51zm.59 4.11c-1.67 1.36-3.57 1.45-4.25.2-.68-1.25.1-3.28 1.77-4.64 1.67-1.36 3.57-1.45 4.25-.2.68 1.25-.1 3.28-1.77 4.64zm7.02-3.63c-.27-1.98-2.39-3.4-4.78-3.22-.55.04-1.08.15-1.58.32.14-.47.22-.97.22-1.48 0-2.21-1.34-4-3-4s-3 1.79-3 4c0 .39.04.77.12 1.14C4.78 10.08 3 11.87 3 14c0 2.76 3.13 5 7 5s7-2.24 7-5c0-.42-.05-.82-.15-1.2 1.02-.25 1.82-.92 1.75-1.8zM20 5.5c0 1.38-1.12 2.5-2.5 2.5S15 6.88 15 5.5 16.12 3 17.5 3 20 4.12 20 5.5zm1 2.5c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1z"/>
@@ -138,14 +137,14 @@ const ShareButton = ({ title, url, className }: ShareButtonProps) => {
               <div className="my-1 border-t border-border" />
               <button
                 onClick={shareToTwitter}
-                className="w-full flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
               >
                 <Twitter className="w-4 h-4" />
                 Twitter
               </button>
               <button
                 onClick={shareToFacebook}
-                className="w-full flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/10 transition-colors"
               >
                 <Facebook className="w-4 h-4" />
                 Facebook
@@ -155,33 +154,33 @@ const ShareButton = ({ title, url, className }: ShareButtonProps) => {
         )}
       </div>
 
-      {/* QR Code Dialog with Tabs - optimized for mobile */}
+      {/* QR Code Dialog with Tabs */}
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-        <DialogContent className="w-[calc(100%-2rem)] max-w-md mx-auto p-4 sm:p-6">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center text-base sm:text-lg">扫码分享到社交平台</DialogTitle>
+            <DialogTitle className="text-center">扫码分享到社交平台</DialogTitle>
           </DialogHeader>
           
           <Tabs value={activeQRTab} onValueChange={setActiveQRTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-4">
               {Object.entries(platforms).map(([key, platform]) => (
                 <TabsTrigger 
                   key={key} 
                   value={key}
-                  className="flex flex-col sm:flex-row items-center gap-1 text-xs py-2 px-1"
+                  className="flex items-center gap-1 text-xs"
                 >
-                  <span className="[&>svg]:w-4 [&>svg]:h-4">{platform.icon}</span>
-                  <span className="text-[10px] sm:text-xs">{platform.name}</span>
+                  {platform.icon}
+                  <span className="hidden sm:inline">{platform.name}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
             
             {Object.entries(platforms).map(([key, platform]) => (
               <TabsContent key={key} value={key} className="mt-4">
-                <div className="flex flex-col items-center gap-3 sm:gap-4">
+                <div className="flex flex-col items-center gap-4">
                   {/* Platform header */}
                   <div className={cn(
-                    "flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-white text-sm",
+                    "flex items-center gap-2 px-4 py-2 rounded-full text-white",
                     `bg-gradient-to-r ${platform.color}`
                   )}>
                     {platform.icon}
@@ -189,16 +188,16 @@ const ShareButton = ({ title, url, className }: ShareButtonProps) => {
                   </div>
                   
                   {/* QR Code */}
-                  <div className="bg-white p-3 sm:p-4 rounded-xl shadow-lg">
+                  <div className="bg-white p-4 rounded-xl shadow-lg">
                     <QRCode 
                       value={platform.url} 
-                      size={160}
+                      size={180}
                       level="M"
                     />
                   </div>
                   
                   {/* Description */}
-                  <p className="text-xs sm:text-sm text-muted-foreground text-center max-w-xs px-2">
+                  <p className="text-sm text-muted-foreground text-center max-w-xs">
                     {platform.description}
                   </p>
                   
