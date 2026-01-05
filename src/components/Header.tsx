@@ -49,7 +49,7 @@ const Header = () => {
           </Link>
           
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden lg:flex items-center">
             <ul className="flex items-center bg-card/80 backdrop-blur-sm rounded-2xl px-2 py-2 border border-border/50 shadow-sm">
               {navLinks.map((link) => {
                 const Icon = link.icon;
@@ -59,7 +59,7 @@ const Header = () => {
                     <Link
                       to={link.path}
                       className={cn(
-                        "relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                        "relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300",
                         isActive
                           ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -84,7 +84,7 @@ const Header = () => {
                     href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rss-feed`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl border border-border/50 bg-card/50 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all"
+                    className="hidden lg:flex w-9 h-9 items-center justify-center rounded-xl border border-border/50 bg-card/50 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all"
                     aria-label="RSS 订阅"
                   >
                     <Rss className="w-4 h-4" />
@@ -97,12 +97,14 @@ const Header = () => {
             </TooltipProvider>
 
             {/* Bookmarks */}
-            <BookmarksList />
+            <div className="hidden sm:block">
+              <BookmarksList />
+            </div>
 
             {isAdmin && (
               <Link
                 to="/admin"
-                className="hidden md:flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-primary rounded-xl border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                className="hidden lg:flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary rounded-xl border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
               >
                 <Settings className="w-4 h-4" />
                 管理
@@ -111,26 +113,26 @@ const Header = () => {
             {!user && (
               <Link
                 to="/auth"
-                className="hidden md:flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-foreground bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105"
+                className="hidden lg:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-foreground bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105"
               >
                 登录
               </Link>
             )}
             <ThemeToggle />
             
-            {/* Mobile menu button */}
+            {/* Mobile/Tablet menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden w-11 h-11 flex items-center justify-center rounded-xl bg-card border border-border/50 text-foreground hover:bg-muted transition-colors"
+              className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-card border border-border/50 text-foreground hover:bg-muted transition-colors"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </nav>
 
-        {/* Mobile Navigation */}
+        {/* Mobile/Tablet Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden pb-6 animate-fade-in">
+          <div className="lg:hidden pb-6 animate-fade-in">
             <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-3 shadow-lg">
               <ul className="space-y-1">
                 {navLinks.map((link) => {
