@@ -102,8 +102,8 @@ const ShareButton = ({ title, url, className }: ShareButtonProps) => {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300",
-            "border-2 overflow-hidden",
+            "group relative inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full transition-all duration-300",
+            "border-2 overflow-hidden whitespace-nowrap",
             isOpen 
               ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-400/50 text-blue-500" 
               : "bg-card border-border hover:border-blue-300 text-muted-foreground hover:text-blue-500",
@@ -113,7 +113,7 @@ const ShareButton = ({ title, url, className }: ShareButtonProps) => {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           
           <Share2 className={cn(
-            "w-5 h-5 transition-all duration-300 relative z-10",
+            "w-5 h-5 flex-shrink-0 transition-all duration-300 relative z-10",
             isOpen && "rotate-12",
             "group-hover:scale-110"
           )} />
