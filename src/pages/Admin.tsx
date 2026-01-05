@@ -2704,11 +2704,11 @@ const Admin = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="category">分类</Label>
                   <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -2728,6 +2728,7 @@ const Admin = () => {
                     value={readTime}
                     onChange={(e) => setReadTime(e.target.value)}
                     placeholder="5分钟"
+                    className="h-10"
                   />
                 </div>
               </div>
