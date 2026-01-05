@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, Clock, Eye, X } from "lucide-react";
 import { format } from 'date-fns';
@@ -12,6 +12,7 @@ import BookmarkButton from "@/components/BookmarkButton";
 import TableOfContents from "@/components/TableOfContents";
 import RelatedPosts from "@/components/RelatedPosts";
 import ReadingModeButton from "@/components/ReadingModeButton";
+import ReadingCompleteCelebration from "@/components/ReadingCompleteCelebration";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { usePost, useIncrementViewCount } from "@/hooks/usePosts";
@@ -40,6 +41,8 @@ const BlogPost = () => {
   const { getSavedProgress } = useReadingProgress(slug);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedScrollPosition, setSavedScrollPosition] = useState<number | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const hasShownCelebrationRef = useRef(false);
   
   // Use reading mode hook with font size control
   const {
@@ -82,6 +85,26 @@ const BlogPost = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isReadingMode, exitReadingMode]);
+
+  // Track reading completion
+  useEffect(() => {
+    if (!slug || !post) return;
+    
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      
+      // Show celebration when user reaches 95% and hasn't seen it yet
+      if (progress >= 95 && !hasShownCelebrationRef.current) {
+        hasShownCelebrationRef.current = true;
+        setShowCelebration(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [slug, post]);
 
   const handleResumeReading = () => {
     if (savedScrollPosition) {
@@ -157,6 +180,13 @@ const BlogPost = () => {
       isReadingMode && "bg-[#f9f7f1] dark:bg-[#1a1a1a]"
     )}>
       {!isReadingMode && <Header />}
+      
+      {/* Reading Complete Celebration */}
+      <ReadingCompleteCelebration 
+        show={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        postTitle={post?.title || ''}
+      />
       
       {/* Resume Reading Prompt */}
       {showResumePrompt && (
