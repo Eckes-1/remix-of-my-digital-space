@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, createContext, useContext, useState, ReactNode } from 'react';
+import { useEffect } from 'react';
 
-export type AnimationStyle = 'elegant' | 'playful' | 'tech' | 'minimal';
+export type AnimationStyle = 'elegant' | 'playful' | 'tech' | 'minimal' | 'neon' | 'retro' | 'aurora' | 'ink';
 
 export interface AnimationSettings {
   style: AnimationStyle;
@@ -23,16 +23,13 @@ const defaultSettings: AnimationSettings = {
 // Animation class mappings for different styles
 export const animationClasses = {
   elegant: {
-    // Hover effects
     cardHover: 'hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-500 ease-out',
     buttonHover: 'hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-300 ease-out',
     linkHover: 'hover:text-primary transition-colors duration-300',
     imageHover: 'hover:scale-105 transition-transform duration-700 ease-out',
-    // Animations
     fadeIn: 'animate-fade-in',
     slideUp: 'animate-slide-up',
     scaleIn: 'animate-scale-in',
-    // Special effects
     glow: 'hover:shadow-primary/30',
     underline: 'relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all after:duration-300',
   },
@@ -69,6 +66,54 @@ export const animationClasses = {
     glow: '',
     underline: 'hover:underline',
   },
+  // New: Neon Cyberpunk style
+  neon: {
+    cardHover: 'card-hover-neon',
+    buttonHover: 'button-hover-neon',
+    linkHover: 'hover:text-pink-400 hover:drop-shadow-[0_0_8px_rgba(236,72,153,0.8)] transition-all duration-200',
+    imageHover: 'hover:scale-105 hover:saturate-150 hover:contrast-110 transition-all duration-500',
+    fadeIn: 'animate-neon-flicker',
+    slideUp: 'animate-slide-up-neon',
+    scaleIn: 'animate-neon-pulse-in',
+    glow: 'hover:shadow-pink-500/50',
+    underline: 'relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-gradient-to-r after:from-pink-500 after:via-purple-500 after:to-cyan-500 hover:after:w-full after:transition-all after:duration-300 after:shadow-[0_0_10px_rgba(236,72,153,0.8)]',
+  },
+  // New: Retro/Vaporwave style
+  retro: {
+    cardHover: 'card-hover-retro',
+    buttonHover: 'button-hover-retro',
+    linkHover: 'hover:text-fuchsia-400 transition-all duration-300',
+    imageHover: 'hover:scale-105 hover:hue-rotate-30 transition-all duration-700',
+    fadeIn: 'animate-retro-fade',
+    slideUp: 'animate-retro-slide',
+    scaleIn: 'animate-retro-zoom',
+    glow: 'hover:shadow-fuchsia-500/40',
+    underline: 'relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-1 after:bg-gradient-to-r after:from-fuchsia-500 after:to-cyan-400 hover:after:w-full after:transition-all after:duration-500',
+  },
+  // New: Aurora/Northern lights style
+  aurora: {
+    cardHover: 'card-hover-aurora',
+    buttonHover: 'button-hover-aurora',
+    linkHover: 'hover:text-emerald-400 transition-all duration-400',
+    imageHover: 'hover:scale-102 hover:brightness-110 transition-all duration-1000 ease-out',
+    fadeIn: 'animate-aurora-fade',
+    slideUp: 'animate-aurora-rise',
+    scaleIn: 'animate-aurora-bloom',
+    glow: 'hover:shadow-emerald-500/30',
+    underline: 'relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-gradient-to-r after:from-emerald-400 after:via-teal-400 after:to-cyan-400 hover:after:w-full after:transition-all after:duration-500',
+  },
+  // New: Ink/Brush stroke style (Chinese calligraphy inspired)
+  ink: {
+    cardHover: 'card-hover-ink',
+    buttonHover: 'button-hover-ink',
+    linkHover: 'hover:text-stone-900 dark:hover:text-stone-100 transition-all duration-300',
+    imageHover: 'hover:scale-102 hover:grayscale-[20%] transition-all duration-700',
+    fadeIn: 'animate-ink-spread',
+    slideUp: 'animate-ink-brush',
+    scaleIn: 'animate-ink-drop',
+    glow: '',
+    underline: 'relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-foreground hover:after:w-full after:transition-all after:duration-700 after:ease-[cubic-bezier(0.22,1,0.36,1)]',
+  },
 };
 
 // Speed multipliers
@@ -78,20 +123,9 @@ export const speedMultipliers = {
   fast: 0.6,
 };
 
-// Context for animation settings
-interface AnimationContextType {
-  settings: AnimationSettings;
-  updateSettings: (settings: Partial<AnimationSettings>) => void;
-  getAnimationClass: (type: keyof typeof animationClasses.elegant) => string;
-  isScrollAnimationEnabled: boolean;
-}
-
-const AnimationContext = createContext<AnimationContextType | null>(null);
-
 export const useAnimationSettings = () => {
   const queryClient = useQueryClient();
 
-  // Listen for realtime changes
   useEffect(() => {
     const channel = supabase
       .channel('animation-settings')
@@ -119,7 +153,6 @@ export const useAnimationSettings = () => {
         .single();
       
       if (error) {
-        // Return default settings if not found
         return defaultSettings;
       }
       return data.value as unknown as AnimationSettings;
@@ -133,7 +166,6 @@ export const useUpdateAnimationSettings = () => {
   
   return useMutation({
     mutationFn: async (settings: AnimationSettings) => {
-      // First check if the setting exists
       const { data: existing } = await supabase
         .from('site_settings')
         .select('id')
@@ -159,11 +191,10 @@ export const useUpdateAnimationSettings = () => {
   });
 };
 
-// Hook to get animation classes based on current style
 export const useAnimationClasses = () => {
   const { data: settings } = useAnimationSettings();
   const style = settings?.style || 'elegant';
-  const classes = animationClasses[style];
+  const classes = animationClasses[style] || animationClasses.elegant;
   
   return {
     ...classes,

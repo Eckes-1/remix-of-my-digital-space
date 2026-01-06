@@ -39,6 +39,14 @@ const Header = () => {
         return 'group-hover:scale-105 group-hover:shadow-cyan-500/50';
       case 'minimal':
         return 'group-hover:opacity-80';
+      case 'neon':
+        return 'group-hover:scale-105 group-hover:shadow-pink-500/50 group-hover:shadow-lg';
+      case 'retro':
+        return 'group-hover:scale-110 group-hover:rotate-3 group-hover:hue-rotate-15';
+      case 'aurora':
+        return 'group-hover:scale-105 group-hover:shadow-emerald-500/50';
+      case 'ink':
+        return 'group-hover:scale-102';
       default:
         return 'group-hover:scale-105';
     }

@@ -41,6 +41,14 @@ const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }
         return 'card-hover-tech';
       case 'minimal':
         return 'card-hover-minimal';
+      case 'neon':
+        return 'card-hover-neon';
+      case 'retro':
+        return 'card-hover-retro';
+      case 'aurora':
+        return 'card-hover-aurora';
+      case 'ink':
+        return 'card-hover-ink';
       default:
         return 'card-hover-elegant';
     }
@@ -55,6 +63,14 @@ const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }
         return 'group-hover:scale-105 group-hover:brightness-125';
       case 'minimal':
         return 'group-hover:scale-102';
+      case 'neon':
+        return 'group-hover:scale-105 group-hover:saturate-150 group-hover:brightness-110';
+      case 'retro':
+        return 'group-hover:scale-105 group-hover:hue-rotate-15';
+      case 'aurora':
+        return 'group-hover:scale-102 group-hover:brightness-110';
+      case 'ink':
+        return 'group-hover:scale-102 group-hover:grayscale-[20%]';
       default:
         return 'group-hover:scale-110 group-hover:brightness-110';
     }
@@ -69,6 +85,14 @@ const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }
         return 'bg-gradient-to-r from-cyan-500 to-purple-500 animate-glow-pulse';
       case 'minimal':
         return 'bg-foreground/80';
+      case 'neon':
+        return 'bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 animate-neon-flicker shadow-lg shadow-pink-500/30';
+      case 'retro':
+        return 'bg-gradient-to-r from-fuchsia-500 to-cyan-400';
+      case 'aurora':
+        return 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400';
+      case 'ink':
+        return 'bg-foreground text-background';
       default:
         return 'bg-primary/90';
     }

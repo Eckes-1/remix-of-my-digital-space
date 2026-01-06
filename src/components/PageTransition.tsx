@@ -50,6 +50,22 @@ const PageTransition = ({ children }: PageTransitionProps) => {
         return isTransitioning 
           ? 'opacity-0' 
           : 'opacity-100';
+      case 'neon':
+        return isTransitioning 
+          ? 'opacity-0 scale-98 blur-sm brightness-150' 
+          : 'opacity-100 scale-100 blur-0 brightness-100';
+      case 'retro':
+        return isTransitioning 
+          ? 'opacity-0 scale-105 -rotate-1 hue-rotate-30' 
+          : 'opacity-100 scale-100 rotate-0 hue-rotate-0';
+      case 'aurora':
+        return isTransitioning 
+          ? 'opacity-0 translate-y-8 scale-98' 
+          : 'opacity-100 translate-y-0 scale-100';
+      case 'ink':
+        return isTransitioning 
+          ? 'opacity-0 scale-99' 
+          : 'opacity-100 scale-100';
       default: // elegant
         return isTransitioning 
           ? 'opacity-0 translate-y-4' 
@@ -58,7 +74,23 @@ const PageTransition = ({ children }: PageTransitionProps) => {
   };
 
   const getDuration = () => {
-    const baseDuration = style === 'minimal' ? 150 : style === 'playful' ? 400 : 300;
+    let baseDuration = 300;
+    switch (style) {
+      case 'minimal':
+        baseDuration = 150;
+        break;
+      case 'playful':
+      case 'neon':
+        baseDuration = 400;
+        break;
+      case 'retro':
+        baseDuration = 500;
+        break;
+      case 'aurora':
+      case 'ink':
+        baseDuration = 600;
+        break;
+    }
     const multiplier = settings?.animationSpeed === 'slow' ? 1.5 : 
                        settings?.animationSpeed === 'fast' ? 0.6 : 1;
     return baseDuration * multiplier;
