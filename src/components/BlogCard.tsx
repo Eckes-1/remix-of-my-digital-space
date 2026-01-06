@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
-import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { Calendar, Clock, ArrowRight, Sparkles } from "lucide-react";
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { useAnimationClasses } from "@/hooks/useAnimationStyle";
+import { cn } from "@/lib/utils";
 import coverProgramming from '@/assets/cover-programming.jpg';
 import coverReading from '@/assets/cover-reading.jpg';
 import coverLife from '@/assets/cover-life.jpg';
@@ -28,55 +30,168 @@ const categoryCovers: Record<string, string> = {
 const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }: BlogCardProps) => {
   const cover = coverImage || categoryCovers[category] || coverProgramming;
   const formattedDate = date ? format(new Date(date), 'yyyy年M月d日', { locale: zhCN }) : '';
+  const { style } = useAnimationClasses();
+
+  // Get card hover class based on animation style
+  const getCardHoverClass = () => {
+    switch (style) {
+      case 'playful':
+        return 'card-hover-playful';
+      case 'tech':
+        return 'card-hover-tech';
+      case 'minimal':
+        return 'card-hover-minimal';
+      default:
+        return 'card-hover-elegant';
+    }
+  };
+
+  // Get image hover effect based on style
+  const getImageHoverClass = () => {
+    switch (style) {
+      case 'playful':
+        return 'group-hover:scale-115 group-hover:rotate-2';
+      case 'tech':
+        return 'group-hover:scale-105 group-hover:brightness-125';
+      case 'minimal':
+        return 'group-hover:scale-102';
+      default:
+        return 'group-hover:scale-110 group-hover:brightness-110';
+    }
+  };
+
+  // Get category badge style
+  const getCategoryBadgeClass = () => {
+    switch (style) {
+      case 'playful':
+        return 'animate-bounce-slow bg-gradient-to-r from-accent to-primary';
+      case 'tech':
+        return 'bg-gradient-to-r from-cyan-500 to-purple-500 animate-glow-pulse';
+      case 'minimal':
+        return 'bg-foreground/80';
+      default:
+        return 'bg-primary/90';
+    }
+  };
+
+  // Get read more indicator style
+  const getReadMoreClass = () => {
+    switch (style) {
+      case 'playful':
+        return 'group-hover:translate-y-0 group-hover:rotate-2';
+      case 'tech':
+        return 'group-hover:translate-y-0 bg-gradient-to-r from-cyan-500/80 to-purple-500/80';
+      default:
+        return 'group-hover:translate-y-0';
+    }
+  };
 
   return (
     <Link to={`/blog/${slug}`} className="block group perspective-1000">
-      <article className="blog-card h-full flex flex-col relative overflow-hidden transition-all duration-500 group-hover:shadow-2xl group-hover:shadow-primary/10 group-hover:-translate-y-2">
-        {/* Glow effect on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:via-transparent group-hover:to-accent/5 transition-all duration-500 rounded-[var(--radius)]" />
+      <article className={cn(
+        "blog-card h-full flex flex-col relative overflow-hidden",
+        getCardHoverClass()
+      )}>
+        {/* Glow effect on hover - style specific */}
+        <div className={cn(
+          "absolute inset-0 transition-all duration-500 rounded-[var(--radius)]",
+          style === 'playful' ? 'bg-gradient-to-br from-accent/0 via-primary/0 to-accent/0 group-hover:from-accent/10 group-hover:via-transparent group-hover:to-primary/10' :
+          style === 'tech' ? 'bg-gradient-to-br from-cyan-500/0 via-transparent to-purple-500/0 group-hover:from-cyan-500/10 group-hover:to-purple-500/10' :
+          style === 'minimal' ? '' :
+          'bg-gradient-to-br from-primary/0 via-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:via-transparent group-hover:to-accent/5'
+        )} />
         
         <div className="relative overflow-hidden rounded-lg mb-4 aspect-video">
           <img
             src={cover}
             alt={title}
-            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-110"
+            className={cn(
+              "w-full h-full object-cover transition-all duration-700",
+              getImageHoverClass()
+            )}
           />
           {/* Image overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className={cn(
+            "absolute inset-0 transition-opacity duration-500 opacity-0 group-hover:opacity-100",
+            style === 'tech' ? 'bg-gradient-to-t from-cyan-900/60 via-transparent to-purple-900/20' :
+            'bg-gradient-to-t from-background/60 via-transparent to-transparent'
+          )} />
+          
+          {/* Scan line effect for tech style */}
+          {style === 'tech' && (
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan-line pointer-events-none" />
+          )}
           
           {/* Category badge floating on image */}
           <div className="absolute top-3 left-3 z-10">
-            <span className="inline-flex items-center text-xs font-semibold text-primary-foreground bg-primary/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
+            <span className={cn(
+              "inline-flex items-center text-xs font-semibold text-primary-foreground backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg transition-all duration-300",
+              getCategoryBadgeClass(),
+              style === 'playful' && "group-hover:scale-110"
+            )}>
+              {style === 'tech' && <Sparkles className="w-3 h-3 mr-1" />}
               {category}
             </span>
           </div>
           
           {/* Read more indicator */}
-          <div className="absolute bottom-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+          <div className={cn(
+            "absolute bottom-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2",
+            getReadMoreClass()
+          )}>
+            <span className={cn(
+              "inline-flex items-center gap-1.5 text-xs font-medium text-white backdrop-blur-sm px-3 py-1.5 rounded-full",
+              style === 'tech' ? 'bg-gradient-to-r from-cyan-500/80 to-purple-500/80' : 'bg-black/50'
+            )}>
               阅读文章
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className={cn(
+                "w-3 h-3 transition-transform duration-300",
+                style === 'playful' && "group-hover:translate-x-1 group-hover:animate-wiggle"
+              )} />
             </span>
           </div>
         </div>
         
         <div className="flex-1 flex flex-col relative z-10">
-          <h3 className="font-serif text-xl font-semibold text-foreground group-hover:text-primary transition-colors duration-300 mb-3 line-clamp-2 leading-tight">
+          <h3 className={cn(
+            "font-serif text-xl font-semibold text-foreground transition-all duration-300 mb-3 line-clamp-2 leading-tight",
+            style === 'playful' ? 'group-hover:text-accent group-hover:tracking-wide' :
+            style === 'tech' ? 'group-hover:text-cyan-400' :
+            'group-hover:text-primary'
+          )}>
             {title}
           </h3>
           
-          <p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3 flex-1">
+          <p className={cn(
+            "text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3 flex-1 transition-colors duration-300",
+            style === 'tech' && "group-hover:text-foreground/80"
+          )}>
             {excerpt}
           </p>
           
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t border-border/50">
+          <div className={cn(
+            "flex items-center justify-between text-xs text-muted-foreground pt-4 border-t transition-colors duration-300",
+            style === 'tech' ? 'border-cyan-500/20 group-hover:border-cyan-500/40' : 'border-border/50'
+          )}>
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-md">
-                <Calendar className="w-3.5 h-3.5 text-primary/70" />
+              <span className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-300",
+                style === 'tech' ? 'bg-cyan-500/10 group-hover:bg-cyan-500/20' : 'bg-muted/50'
+              )}>
+                <Calendar className={cn(
+                  "w-3.5 h-3.5",
+                  style === 'tech' ? 'text-cyan-400' : 'text-primary/70'
+                )} />
                 {formattedDate}
               </span>
-              <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-md">
-                <Clock className="w-3.5 h-3.5 text-primary/70" />
+              <span className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-300",
+                style === 'tech' ? 'bg-purple-500/10 group-hover:bg-purple-500/20' : 'bg-muted/50'
+              )}>
+                <Clock className={cn(
+                  "w-3.5 h-3.5",
+                  style === 'tech' ? 'text-purple-400' : 'text-primary/70'
+                )} />
                 {readTime}
               </span>
             </div>

@@ -23,6 +23,7 @@ import ArticlePreview from '@/components/ArticlePreview';
 import AuthorManager from '@/components/AuthorManager';
 import StatsCharts from '@/components/StatsCharts';
 import MusicTrackManager from '@/components/MusicTrackManager';
+import AnimationStyleManager from '@/components/AnimationStyleManager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -2473,6 +2474,11 @@ const Admin = () => {
                 {/* Music Playlist Management */}
                 <div className="blog-card">
                   <MusicTrackManager />
+                </div>
+
+                {/* Animation Style Management */}
+                <div className="blog-card">
+                  <AnimationStyleManager />
                 </div>
               </div>
             </TabsContent>

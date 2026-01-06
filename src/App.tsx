@@ -17,6 +17,7 @@ import ReadingProgress from "./components/ReadingProgress";
 import ThemeStyleInitializer from "./components/ThemeStyleInitializer";
 import MusicPlayer from "./components/MusicPlayer";
 import LoadingScreen from "./components/LoadingScreen";
+import PageTransition from "./components/PageTransition";
 
 const queryClient = new QueryClient();
 
@@ -31,17 +32,19 @@ const App = () => (
         <ReadingProgress />
         <MusicPlayer />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/archive" element={<Archive />} />
-            <Route path="/tags/:slug" element={<TagPage />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <PageTransition>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/archive" element={<Archive />} />
+              <Route path="/tags/:slug" element={<TagPage />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </PageTransition>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
