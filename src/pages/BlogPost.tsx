@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
@@ -179,6 +180,18 @@ const BlogPost = () => {
       "min-h-screen flex flex-col transition-all duration-500 overflow-x-hidden",
       isReadingMode && "bg-[#f9f7f1] dark:bg-[#1a1a1a]"
     )}>
+      <SEOHead 
+        title={`${post.title} | 墨韵文轩`}
+        description={post.excerpt}
+        ogType="article"
+        ogImage={cover}
+        article={{
+          publishedTime: post.published_at || post.created_at,
+          modifiedTime: post.updated_at,
+          author: author?.name || '墨韵文轩',
+          section: post.category,
+        }}
+      />
       {!isReadingMode && <Header />}
       
       {/* Reading Complete Celebration */}

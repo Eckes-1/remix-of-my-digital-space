@@ -1,10 +1,12 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Home, Search, ArrowLeft, Compass, BookOpen, Sparkles } from "lucide-react";
+import { Home, Search, ArrowLeft, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
+import NotFoundIllustration from "@/components/NotFoundIllustration";
 import { usePopularPosts } from "@/hooks/usePosts";
 import { cn } from "@/lib/utils";
 
@@ -27,54 +29,33 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEOHead 
+        title="页面未找到 | 墨韵文轩"
+        description="抱歉，您访问的页面不存在。请尝试搜索或返回首页浏览更多精彩内容。"
+        noIndex={true}
+      />
       <Header />
       
       <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="max-w-2xl w-full text-center space-y-8">
-          {/* Animated 404 Number */}
-          <div className="relative">
-            {/* Floating particles */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute animate-float opacity-30"
-                  style={{
-                    left: `${15 + i * 15}%`,
-                    top: `${20 + (i % 3) * 20}%`,
-                    animationDelay: `${i * 0.5}s`,
-                    animationDuration: `${3 + i * 0.5}s`,
-                  }}
-                >
-                  <Sparkles className="w-4 h-4 text-primary" />
-                </div>
-              ))}
-            </div>
+        <div className="max-w-2xl w-full text-center space-y-6">
+          {/* Cute Illustration */}
+          <div className="animate-fade-in">
+            <NotFoundIllustration className="mx-auto" />
+          </div>
 
-            {/* 404 Text with gradient */}
-            <h1 className="text-[120px] sm:text-[180px] font-bold leading-none tracking-tighter relative">
-              <span className="bg-gradient-to-br from-primary via-primary/70 to-accent bg-clip-text text-transparent animate-pulse">
-                4
-              </span>
-              <span className="relative inline-block mx-2">
-                <Compass 
-                  className="w-20 h-20 sm:w-28 sm:h-28 text-primary animate-spin-slow" 
-                  style={{ animationDuration: '8s' }}
-                />
-              </span>
-              <span className="bg-gradient-to-br from-accent via-primary/70 to-primary bg-clip-text text-transparent animate-pulse" style={{ animationDelay: '0.5s' }}>
-                4
-              </span>
-            </h1>
+          {/* 404 Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <span className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">404</span>
+            <span className="text-sm text-muted-foreground">页面未找到</span>
           </div>
 
           {/* Message */}
-          <div className="space-y-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-2xl sm:text-3xl font-serif font-semibold text-foreground">
-              哎呀，页面迷路了
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              看起来这个页面去了一个我们找不到的地方。不过别担心，让我们帮你找到正确的方向！
+          <div className="space-y-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-foreground">
+              哎呀，这只小猫也找不到这个页面
+            </h1>
+            <p className="text-muted-foreground max-w-md mx-auto text-sm sm:text-base">
+              看起来这个页面去了一个我们找不到的地方。不如试试搜索，或者看看热门文章？
             </p>
           </div>
 
@@ -133,8 +114,8 @@ const NotFound = () => {
 
           {/* Popular Posts Recommendation */}
           {popularPosts && popularPosts.length > 0 && (
-            <div className="pt-8 animate-fade-in" style={{ animationDelay: '0.5s' }}>
-              <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="pt-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+              <div className="flex items-center justify-center gap-2 mb-5">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent to-border" />
                 <span className="text-sm font-medium text-muted-foreground px-4 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary" />
@@ -146,7 +127,7 @@ const NotFound = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
                 {isLoading ? (
                   [...Array(4)].map((_, i) => (
-                    <div key={i} className="h-16 bg-card/50 rounded-xl animate-pulse" />
+                    <div key={i} className="h-14 bg-card/50 rounded-xl animate-pulse" />
                   ))
                 ) : (
                   popularPosts.map((post, index) => (
@@ -157,10 +138,9 @@ const NotFound = () => {
                         "group flex items-center gap-3 p-3 bg-card/50 hover:bg-card border border-border/50 hover:border-primary/30 rounded-xl transition-all duration-300",
                         "hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
                       )}
-                      style={{ animationDelay: `${0.6 + index * 0.1}s` }}
                     >
                       <span className={cn(
-                        "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold",
+                        "flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
                         index === 0 && "bg-gradient-to-br from-amber-500 to-orange-500 text-white",
                         index === 1 && "bg-gradient-to-br from-slate-400 to-slate-500 text-white",
                         index === 2 && "bg-gradient-to-br from-amber-700 to-amber-800 text-white",

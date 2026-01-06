@@ -9,6 +9,7 @@ import SidebarSkeleton from "@/components/SidebarSkeleton";
 import SearchBar from "@/components/SearchBar";
 import TagCloud from "@/components/TagCloud";
 import PopularPosts from "@/components/PopularPosts";
+import SEOHead from "@/components/SEOHead";
 import { usePosts, useSearchPosts } from "@/hooks/usePosts";
 
 const Index = () => {
@@ -28,6 +29,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <SEOHead 
+        title="墨韵文轩 | 技术博客与生活感悟"
+        description="一个关于技术探索、编程心得与生活感悟的个人博客。分享前端开发、系统设计、效率提升等实用内容。"
+        keywords="技术博客, 前端开发, React, TypeScript, 编程, 生活随笔"
+      />
       <Header />
       
       <main className="flex-1">
