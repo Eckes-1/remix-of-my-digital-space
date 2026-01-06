@@ -288,6 +288,11 @@
   50% { transform: translateY(-8px); }
 }
 
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
 .animate-confetti-fall {
   animation: confetti-fall linear forwards;
 }
@@ -307,6 +312,10 @@
 
 .animate-bounce-slow {
   animation: bounce-slow 2s ease-in-out infinite;
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 3s ease-in-out infinite;
 }
 
 /* Import fonts for different themes */
