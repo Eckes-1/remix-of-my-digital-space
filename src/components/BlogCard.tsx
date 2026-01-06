@@ -178,43 +178,68 @@ const BlogCard = ({ slug, title, excerpt, date, readTime, category, coverImage }
         
         <div className="flex-1 flex flex-col relative z-10">
           <h3 className={cn(
-            "font-serif text-xl font-semibold text-foreground transition-all duration-300 mb-3 line-clamp-2 leading-tight",
-            style === 'playful' ? 'group-hover:text-accent group-hover:tracking-wide' :
-            style === 'tech' ? 'group-hover:text-cyan-400' :
-            'group-hover:text-primary'
+            "font-serif text-xl font-semibold transition-all duration-300 mb-3 line-clamp-2 leading-tight",
+            // Base color - always readable
+            "text-foreground",
+            // Hover colors based on style
+            style === 'playful' && 'group-hover:text-accent group-hover:tracking-wide',
+            style === 'tech' && 'group-hover:text-cyan-500 dark:group-hover:text-cyan-400',
+            style === 'neon' && 'group-hover:text-pink-500 dark:group-hover:text-pink-400',
+            style === 'retro' && 'group-hover:text-fuchsia-500 dark:group-hover:text-fuchsia-400',
+            style === 'aurora' && 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400',
+            style === 'ink' && 'group-hover:text-stone-900 dark:group-hover:text-stone-100',
+            !['playful', 'tech', 'neon', 'retro', 'aurora', 'ink'].includes(style) && 'group-hover:text-primary'
           )}>
             {title}
           </h3>
           
-          <p className={cn(
-            "text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3 flex-1 transition-colors duration-300",
-            style === 'tech' && "group-hover:text-foreground/80"
-          )}>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3 flex-1 transition-colors duration-300">
             {excerpt}
           </p>
           
           <div className={cn(
             "flex items-center justify-between text-xs text-muted-foreground pt-4 border-t transition-colors duration-300",
-            style === 'tech' ? 'border-cyan-500/20 group-hover:border-cyan-500/40' : 'border-border/50'
+            style === 'tech' && 'border-cyan-500/20 group-hover:border-cyan-500/40',
+            style === 'neon' && 'border-pink-500/20 group-hover:border-pink-500/40',
+            style === 'retro' && 'border-fuchsia-500/20 group-hover:border-fuchsia-500/40',
+            style === 'aurora' && 'border-emerald-500/20 group-hover:border-emerald-500/40',
+            style === 'ink' && 'border-foreground/20 group-hover:border-foreground/40',
+            !['tech', 'neon', 'retro', 'aurora', 'ink'].includes(style) && 'border-border/50'
           )}>
             <div className="flex items-center gap-4">
               <span className={cn(
                 "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-300",
-                style === 'tech' ? 'bg-cyan-500/10 group-hover:bg-cyan-500/20' : 'bg-muted/50'
+                style === 'tech' && 'bg-cyan-500/10 group-hover:bg-cyan-500/20',
+                style === 'neon' && 'bg-pink-500/10 group-hover:bg-pink-500/20',
+                style === 'retro' && 'bg-fuchsia-500/10 group-hover:bg-fuchsia-500/20',
+                style === 'aurora' && 'bg-emerald-500/10 group-hover:bg-emerald-500/20',
+                !['tech', 'neon', 'retro', 'aurora'].includes(style) && 'bg-muted/50'
               )}>
                 <Calendar className={cn(
                   "w-3.5 h-3.5",
-                  style === 'tech' ? 'text-cyan-400' : 'text-primary/70'
+                  style === 'tech' && 'text-cyan-500 dark:text-cyan-400',
+                  style === 'neon' && 'text-pink-500 dark:text-pink-400',
+                  style === 'retro' && 'text-fuchsia-500 dark:text-fuchsia-400',
+                  style === 'aurora' && 'text-emerald-500 dark:text-emerald-400',
+                  !['tech', 'neon', 'retro', 'aurora'].includes(style) && 'text-primary/70'
                 )} />
                 {formattedDate}
               </span>
               <span className={cn(
                 "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-300",
-                style === 'tech' ? 'bg-purple-500/10 group-hover:bg-purple-500/20' : 'bg-muted/50'
+                style === 'tech' && 'bg-purple-500/10 group-hover:bg-purple-500/20',
+                style === 'neon' && 'bg-purple-500/10 group-hover:bg-purple-500/20',
+                style === 'retro' && 'bg-cyan-500/10 group-hover:bg-cyan-500/20',
+                style === 'aurora' && 'bg-teal-500/10 group-hover:bg-teal-500/20',
+                !['tech', 'neon', 'retro', 'aurora'].includes(style) && 'bg-muted/50'
               )}>
                 <Clock className={cn(
                   "w-3.5 h-3.5",
-                  style === 'tech' ? 'text-purple-400' : 'text-primary/70'
+                  style === 'tech' && 'text-purple-500 dark:text-purple-400',
+                  style === 'neon' && 'text-purple-500 dark:text-purple-400',
+                  style === 'retro' && 'text-cyan-500 dark:text-cyan-400',
+                  style === 'aurora' && 'text-teal-500 dark:text-teal-400',
+                  !['tech', 'neon', 'retro', 'aurora'].includes(style) && 'text-primary/70'
                 )} />
                 {readTime}
               </span>
